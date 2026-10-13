@@ -92,7 +92,17 @@ export function LoginPage() {
             {submitting ? 'Signing in…' : 'Sign in'}
           </button>
           <p className="hint">
-            First time? The sample staff login is in your project's <code>.env</code> file (SEED_STAFF_EMAIL / SEED_STAFF_PASSWORD).
+            {import.meta.env.DEV ? (
+              <>
+                First time? The sample staff login for this computer is in your project's <code>.env</code> file
+                (SEED_STAFF_EMAIL / SEED_STAFF_PASSWORD).
+              </>
+            ) : (
+              <>
+                Demo site: the staff login for this live site is in <code>.env.vercel.local</code> in your project folder
+                (or in Vercel → API project → Settings → Environment Variables). It is different from your local login.
+              </>
+            )}
           </p>
         </form>
       </section>
