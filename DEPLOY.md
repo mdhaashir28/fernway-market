@@ -120,9 +120,9 @@ How it works (already set up in the code):
 ## Step 3 — The customer app
 
 ### Quick option: use the live API from Expo Go
-Create `mobile/.env` containing:
+Create `mobile/.env` containing your API's address (Render: `https://fernway-api.onrender.com`, Vercel: `https://fernway-market.vercel.app`):
 ```
-EXPO_PUBLIC_API_URL=https://fernway-api.onrender.com
+EXPO_PUBLIC_API_URL=https://fernway-market.vercel.app
 ```
 Then run `npm run mobile` and scan the QR code. The app now talks to your online store, from any network.
 

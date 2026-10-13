@@ -10,13 +10,13 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://fernway-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://fernway-market.vercel.app"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://fernway-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://fernway-market.vercel.app"
       }
     }
   },
