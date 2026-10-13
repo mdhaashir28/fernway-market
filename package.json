@@ -1,0 +1,27 @@
+{
+  "name": "fernway-market",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Supermarket shopping app: Expo mobile app, React staff dashboard, Node.js API and PostgreSQL",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "concurrently --names db,api,dashboard --prefix-colors yellow,green,cyan \"npm:db:local\" \"npm:api\" \"npm:dashboard\"",
+    "dev:no-db": "concurrently --names api,dashboard --prefix-colors green,cyan \"npm:api\" \"npm:dashboard\"",
+    "api": "npm --prefix backend run dev",
+    "dashboard": "npm --prefix dashboard run dev",
+    "mobile": "npm --prefix mobile run start",
+    "db:local": "npm --prefix backend run db:local",
+    "db:migrate": "npm --prefix backend run db:migrate",
+    "db:seed": "npm --prefix backend run db:seed",
+    "db:reset": "npm --prefix backend run db:reset",
+    "create-staff": "npm --prefix backend run create-staff --",
+    "test": "npm --prefix backend test",
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix dashboard run typecheck && npm --prefix mobile run typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  },
+  "engines": {
+    "node": ">=20.11"
+  }
+}

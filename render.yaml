@@ -1,0 +1,78 @@
+# Render "Blueprint": creates the database, API and staff dashboard in one go.
+# How to use it: see DEPLOY.md. Docs: https://render.com/docs/blueprint-spec
+#
+# If Render gives a service a different web address than the ones below
+# (e.g. because the name is taken), update VITE_API_URL and CORS_ORIGINS
+# in the Render dashboard and redeploy.
+
+databases:
+  - name: fernway-db
+    plan: free
+    databaseName: fernway_market
+    user: fernway
+
+services:
+  # --- API (Node.js) --------------------------------------------------------
+  - type: web
+    name: fernway-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fernway-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://fernway-dashboard.onrender.com
+      # Free Render servers lose their disk on every deploy, so keep photos in the database.
+      - key: IMAGE_STORAGE
+        value: database
+      # Demo deployment: load the sample products, orders and two sample accounts.
+      # Set to "false" (and remove the SEED_* variables) for a real store.
+      - key: LOAD_SAMPLE_DATA
+        value: "true"
+      - key: SEED_STAFF_EMAIL
+        value: staff@fernway.local
+      - key: SEED_STAFF_PASSWORD
+        generateValue: true
+      - key: SEED_CUSTOMER_EMAIL
+        value: customer@fernway.local
+      - key: SEED_CUSTOMER_PASSWORD
+        generateValue: true
+      - key: STORE_NAME
+        value: Fernway Market
+      - key: STORE_ADDRESS
+        value: "12 Market Street, Springfield"
+      - key: STORE_PHONE
+        value: "+91 98765 43210"
+      - key: CURRENCY
+        value: INR
+      - key: STORE_TIMEZONE
+        value: Asia/Kolkata
+
+  # --- Staff dashboard (static website) ---------------------------------------
+  - type: web
+    name: fernway-dashboard
+    runtime: static
+    buildCommand: cd dashboard && npm ci && npm run build
+    staticPublishPath: ./dashboard/dist
+    routes:
+      # Send every page address to the app, so refreshing e.g. /orders/5 works.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_API_URL
+        value: https://fernway-api.onrender.com

@@ -1,0 +1,22 @@
+# Secrets — never commit these
+.env
+.env.local
+*.local
+
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Local PostgreSQL data created by "npm run db:local"
+backend/.local-postgres/
+
+# Uploaded product photos (keep the folder, not the files)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Logs and OS files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

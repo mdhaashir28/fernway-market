@@ -1,0 +1,77 @@
+// Loading, error and empty states — every screen uses these so they look the same.
+import Ionicons from '@expo/vector-icons/Ionicons';
+import type { ComponentProps, ReactNode } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { colors, font, spacing } from '@/theme';
+import { Button } from './ui';
+
+export function LoadingView({ message = 'Loading…' }: { message?: string }) {
+  return (
+    <View style={styles.center} accessibilityRole="progressbar" accessibilityLabel={message}>
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text style={styles.muted}>{message}</Text>
+    </View>
+  );
+}
+
+export function ErrorView({ error, onRetry }: { error: Error; onRetry?: () => void }) {
+  return (
+    <View style={styles.center} accessibilityRole="alert">
+      <View style={[styles.iconCircle, { backgroundColor: colors.dangerSoft }]}>
+        <Ionicons name="cloud-offline-outline" size={34} color={colors.danger} />
+      </View>
+      <Text style={styles.title}>Something went wrong</Text>
+      <Text style={styles.message}>{error.message}</Text>
+      {onRetry && <Button title="Try again" icon="refresh" onPress={onRetry} variant="secondary" style={styles.action} />}
+    </View>
+  );
+}
+
+export function EmptyState({
+  icon,
+  emoji,
+  title,
+  message,
+  action,
+}: {
+  icon?: ComponentProps<typeof Ionicons>['name'];
+  emoji?: string;
+  title: string;
+  message?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <View style={styles.center}>
+      <View style={styles.iconCircle}>
+        {emoji ? <Text style={{ fontSize: 34 }}>{emoji}</Text> : <Ionicons name={icon ?? 'basket-outline'} size={34} color={colors.primary} />}
+      </View>
+      <Text style={styles.title}>{title}</Text>
+      {message && <Text style={styles.message}>{message}</Text>}
+      {action && <View style={styles.action}>{action}</View>}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xxl,
+    gap: spacing.md,
+    minHeight: 280,
+  },
+  iconCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  title: { fontSize: font.title - 2, fontWeight: '800', color: colors.text, textAlign: 'center' },
+  message: { fontSize: font.body, color: colors.textMuted, textAlign: 'center', lineHeight: 23, maxWidth: 340 },
+  muted: { fontSize: font.body, color: colors.textMuted },
+  action: { marginTop: spacing.sm, alignSelf: 'center', minWidth: 200 },
+});
