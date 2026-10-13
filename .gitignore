@@ -23,3 +23,8 @@ Thumbs.db
 
 # Zip copies of the project (for sharing/uploading)
 *.zip
+
+# Vercel CLI project link and downloaded settings (local only)
+.vercel/
+.env*.local
+!.env.example

@@ -16,12 +16,18 @@ export function prepareDatabase(): Promise<void> {
     await runMigrations(() => {});
     if (!sampleDataAllowed()) return;
 
+    // Hold a transaction-level lock while seeding (works through connection
+    // poolers too). A second cold start waits here, then sees the data exists.
     const client = await pool.connect();
     try {
-      await client.query('SELECT pg_advisory_lock($1)', [SEED_LOCK_ID]);
+      await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock($1)', [SEED_LOCK_ID]);
       if (await isDatabaseEmpty()) await seedDatabase(() => {});
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
     } finally {
-      await client.query('SELECT pg_advisory_unlock($1)', [SEED_LOCK_ID]).catch(() => {});
       client.release();
     }
   })().catch((err) => {
