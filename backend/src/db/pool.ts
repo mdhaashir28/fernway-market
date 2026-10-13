@@ -6,7 +6,26 @@ import { config } from '../config.js';
 // by default. Our numbers are small, so convert them to normal JS numbers.
 pg.types.setTypeParser(pg.types.builtins.INT8, (value) => Number.parseInt(value, 10));
 
-export const pool = new pg.Pool({ connectionString: config.DATABASE_URL, max: 10 });
+/**
+ * Hosted databases (e.g. Neon) use "?sslmode=require". The pg library already treats
+ * that as "verify-full" (fully checked SSL) but logs a warning about it, so we say
+ * verify-full explicitly. The behaviour is identical; the log stays clean.
+ */
+function withExplicitSslMode(connectionString: string): string {
+  try {
+    const url = new URL(connectionString);
+    const mode = url.searchParams.get('sslmode');
+    if (mode && ['prefer', 'require', 'verify-ca'].includes(mode)) {
+      url.searchParams.set('sslmode', 'verify-full');
+      return url.toString();
+    }
+  } catch {
+    // Not a URL we can parse — leave it exactly as it is.
+  }
+  return connectionString;
+}
+
+export const pool = new pg.Pool({ connectionString: withExplicitSslMode(config.DATABASE_URL), max: 10 });
 
 pool.on('error', (err) => {
   // An idle connection dropped (e.g. the database restarted). The pool will reconnect.

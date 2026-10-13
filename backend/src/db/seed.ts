@@ -8,7 +8,7 @@ import { config } from '../config.js';
 import { backendDir } from '../env.js';
 import { changeOrderStatus, createOrder, type OrderStatus } from '../services/order.service.js';
 import { listUpcomingSlots } from '../services/pickup.service.js';
-import { pool, withTransaction } from './pool.js';
+import { pool, withTransaction, type Db } from './pool.js';
 import { seedCategories, seedDeliveryZones, seedProducts } from './seed-data.js';
 
 /** Sample data is allowed everywhere except production, unless LOAD_SAMPLE_DATA=true. */
@@ -26,35 +26,7 @@ export async function seedDatabase(log: (msg: string) => void = console.log): Pr
 
   await withTransaction(async (client) => {
     // --- Accounts -----------------------------------------------------------
-    const accounts = [
-      { email: config.SEED_STAFF_EMAIL, password: config.SEED_STAFF_PASSWORD, name: 'Store Staff', role: 'staff' },
-      { email: config.SEED_CUSTOMER_EMAIL, password: config.SEED_CUSTOMER_PASSWORD, name: 'Alex Shopper', role: 'customer' },
-    ] as const;
-
-    for (const account of accounts) {
-      if (!account.email || !account.password) {
-        log(`  • Skipped the sample ${account.role} account (SEED_${account.role.toUpperCase()}_EMAIL/PASSWORD not set in .env)`);
-        continue;
-      }
-      const existing = await client.query('SELECT id FROM users WHERE lower(email) = lower($1)', [account.email]);
-      if (existing.rowCount) continue;
-
-      const hash = await bcrypt.hash(account.password, 10);
-      const { rows } = await client.query<{ id: number }>(
-        `INSERT INTO users (email, password_hash, name, phone, role)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-        [account.email.toLowerCase(), hash, account.name, '+91 98765 01234', account.role],
-      );
-      log(`  ✔ Created ${account.role} account ${account.email}`);
-
-      if (account.role === 'customer') {
-        await client.query(
-          `INSERT INTO addresses (user_id, label, recipient_name, phone, line1, city, postcode, instructions, is_default)
-           VALUES ($1, 'Home', $2, '+91 98765 01234', '24 Elm Street', 'Springfield', '10001', 'Blue door — please ring the bell', true)`,
-          [rows[0].id, account.name],
-        );
-      }
-    }
+    await upsertSampleAccounts(client, log);
 
     // --- Categories ---------------------------------------------------------
     for (const [index, category] of seedCategories.entries()) {
@@ -119,6 +91,68 @@ export async function seedDatabase(log: (msg: string) => void = console.log): Pr
   });
 
   await seedSampleOrders(log);
+}
+
+/**
+ * Creates the sample staff and customer accounts from SEED_* settings, or, if
+ * they already exist, makes sure their password matches the current setting.
+ * So changing SEED_STAFF_PASSWORD (in .env or on your host) and restarting /
+ * redeploying always gives you the login you configured.
+ */
+async function upsertSampleAccounts(client: Db, log: (msg: string) => void): Promise<void> {
+  const accounts = [
+    { email: config.SEED_STAFF_EMAIL, password: config.SEED_STAFF_PASSWORD, name: 'Store Staff', role: 'staff' },
+    { email: config.SEED_CUSTOMER_EMAIL, password: config.SEED_CUSTOMER_PASSWORD, name: 'Alex Shopper', role: 'customer' },
+  ] as const;
+
+  for (const account of accounts) {
+    if (!account.email || !account.password) {
+      log(`  • Skipped the sample ${account.role} account (SEED_${account.role.toUpperCase()}_EMAIL/PASSWORD not set)`);
+      continue;
+    }
+    const email = account.email.trim().toLowerCase();
+    const { rows: existing } = await client.query<{ id: number; passwordHash: string; role: string; isActive: boolean }>(
+      'SELECT id, password_hash AS "passwordHash", role, is_active AS "isActive" FROM users WHERE lower(email) = $1',
+      [email],
+    );
+
+    if (existing[0]) {
+      const user = existing[0];
+      // Same hashing (bcrypt) and comparison as the login route.
+      const passwordMatches = await bcrypt.compare(account.password, user.passwordHash);
+      if (!passwordMatches || user.role !== account.role || !user.isActive) {
+        await client.query('UPDATE users SET password_hash = $2, role = $3, is_active = true WHERE id = $1', [
+          user.id,
+          passwordMatches ? user.passwordHash : await bcrypt.hash(account.password, 10),
+          account.role,
+        ]);
+        log(`  ✔ Updated the ${account.role} account ${email} to match its SEED_* settings`);
+      }
+      continue;
+    }
+
+    const hash = await bcrypt.hash(account.password, 10);
+    const { rows } = await client.query<{ id: number }>(
+      `INSERT INTO users (email, password_hash, name, phone, role)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [email, hash, account.name, '+91 98765 01234', account.role],
+    );
+    log(`  ✔ Created ${account.role} account ${email}`);
+
+    if (account.role === 'customer') {
+      await client.query(
+        `INSERT INTO addresses (user_id, label, recipient_name, phone, line1, city, postcode, instructions, is_default)
+         VALUES ($1, 'Home', $2, '+91 98765 01234', '24 Elm Street', 'Springfield', '10001', 'Blue door — please ring the bell', true)`,
+        [rows[0].id, account.name],
+      );
+    }
+  }
+}
+
+/** Keeps the sample accounts in line with the SEED_* settings (runs on every start). */
+export async function syncSampleAccounts(log: (msg: string) => void = console.log): Promise<void> {
+  if (!sampleDataAllowed()) return;
+  await withTransaction((client) => upsertSampleAccounts(client, log));
 }
 
 /**

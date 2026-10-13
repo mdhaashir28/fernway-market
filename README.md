@@ -145,7 +145,7 @@ All settings live in **one file**, `.env`, in the project folder. `npm run setup
 | `PICKUP_*` | Pickup opening hours, slot length, orders per slot, days ahead, notice time |
 | `IMAGE_STORAGE` | `disk` (default) or `database`, which keeps uploaded photos in PostgreSQL (for hosts that wipe their disk) |
 | `LOAD_SAMPLE_DATA` | `true` loads the sample data even in production (demo deployments only) |
-| `SEED_*` | Sample staff/customer logins, **local development only** |
+| `SEED_*` | Sample staff/customer logins (local development and demos). Change a password here and restart the API, and the login changes to match |
 
 After changing `.env`, stop (`Ctrl + C`) and restart `npm run dev`.
 

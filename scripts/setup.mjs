@@ -30,7 +30,10 @@ run('the mobile app', path.join(root, 'mobile'));
 
 // --- .env --------------------------------------------------------------------
 const envPath = path.join(root, '.env');
-const randomPassword = () => crypto.randomBytes(9).toString('base64url'); // 12 readable characters
+// Letters and digits only (no "-" or "_", which break double-click copying,
+// and no look-alikes such as 0/O or 1/l/I), 14 characters.
+const PASSWORD_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+const randomPassword = () => Array.from({ length: 14 }, () => PASSWORD_CHARS[crypto.randomInt(PASSWORD_CHARS.length)]).join('');
 
 if (fs.existsSync(envPath)) {
   console.log('\nℹ️  .env already exists — leaving it unchanged.');

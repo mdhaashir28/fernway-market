@@ -138,6 +138,25 @@ describe('accounts', () => {
     assert.equal(me.body.user.name, 'Test Person');
   });
 
+  it('updates the sample staff login when SEED_STAFF_PASSWORD changes', async () => {
+    const { config } = await import('../src/config.js');
+    const { syncSampleAccounts } = await import('../src/db/seed.js');
+    const original = config.SEED_STAFF_PASSWORD!;
+    try {
+      config.SEED_STAFF_PASSWORD = 'NewStaffPassword42';
+      await syncSampleAccounts(() => {});
+      const old = await api('POST', '/api/auth/login', { body: { email: 'staff@test.local', password: original } });
+      assert.equal(old.status, 401, 'the old password stops working');
+      const fresh = await api('POST', '/api/auth/login', { body: { email: 'STAFF@test.local ', password: 'NewStaffPassword42' } });
+      assert.equal(fresh.status, 200, 'the configured password works (email case and spaces do not matter)');
+      assert.equal(fresh.body.user.role, 'staff');
+    } finally {
+      config.SEED_STAFF_PASSWORD = original;
+      await syncSampleAccounts(() => {});
+    }
+    await login('staff@test.local', original);
+  });
+
   it('keeps staff endpoints for staff only', async () => {
     assert.equal((await api('GET', '/api/staff/summary')).status, 401);
     const customer = await login('customer@test.local', 'customer-password-123');
