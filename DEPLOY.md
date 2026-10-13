@@ -92,6 +92,31 @@ Every `git push` to `main` makes Render rebuild and redeploy automatically. Data
 
 ---
 
+## Step 2 (alternative) — Deploy on Vercel
+
+Vercel runs the API as a **serverless function** and hosts the two websites. It has no database of its own,
+so you add one from its Marketplace (Neon PostgreSQL). You create **three Vercel projects from the same
+GitHub repository**, each with a different **Root Directory**:
+
+| Vercel project | Root Directory | Environment variables to add |
+| --- | --- | --- |
+| API | `backend` | `DATABASE_URL` (added for you when you connect Neon: Project → **Storage** → **Neon**), `JWT_SECRET` (a long random string), `IMAGE_STORAGE=database`, `CORS_ORIGINS` (the dashboard and customer-app addresses, comma-separated), and for a demo `LOAD_SAMPLE_DATA=true` + `SEED_STAFF_EMAIL`, `SEED_STAFF_PASSWORD`, `SEED_CUSTOMER_EMAIL`, `SEED_CUSTOMER_PASSWORD`. Optional: `CURRENCY=INR`, `STORE_TIMEZONE=Asia/Kolkata`, `STORE_NAME`, `STORE_ADDRESS`, `STORE_PHONE` |
+| Staff dashboard | `dashboard` | `VITE_API_URL` = the API's address, e.g. `https://your-api.vercel.app` |
+| Customer app (web) | `mobile` | `EXPO_PUBLIC_API_URL` = the API's address |
+
+How it works (already set up in the code):
+- `backend/server.js` is the API's Vercel entry point. It serves the code compiled by `npm run build`, so
+  TypeScript is checked with the project's own settings. `backend/vercel.json` adds the database migrations and
+  sample photos to the function.
+- On the first request after a deploy (or after a quiet period), the API creates or updates the database tables, and
+  loads the sample data if `LOAD_SAMPLE_DATA=true` and the database is empty. That first request can take a few seconds.
+- `dashboard/vercel.json` and `mobile/vercel.json` build the websites and make page refreshes work.
+  If `VITE_API_URL` / `EXPO_PUBLIC_API_URL` is missing, the build stops with a message telling you what to add.
+- After changing an environment variable, **redeploy** that project (Deployments → ⋯ → Redeploy). The website
+  addresses are built in at build time.
+
+---
+
 ## Step 3 — The customer app
 
 ### Quick option: use the live API from Expo Go
