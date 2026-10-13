@@ -20,3 +20,6 @@ backend/uploads/*
 npm-debug.log*
 .DS_Store
 Thumbs.db
+
+# Zip copies of the project (for sharing/uploading)
+*.zip
