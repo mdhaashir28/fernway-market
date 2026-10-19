@@ -1,4 +1,4 @@
-# Fernway Market — customer app
+# Meeranji Supermarket — customer app
 
 React Native + Expo (SDK 57) + Expo Router + TypeScript.
 

@@ -1,4 +1,4 @@
-import { Pencil, Plus, Search } from 'lucide-react'
+import { ImageOff, Pencil, Plus, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { EmptyState, ErrorState, PageHeader, Pagination, ProductThumb, Spinner, StockBadge } from '../components/ui'
@@ -14,6 +14,7 @@ export function ProductsPage() {
   const categoryId = params.get('categoryId') ?? ''
   const status = params.get('status') ?? 'all'
   const lowStock = params.get('lowStock') === 'true'
+  const missingPhoto = params.get('missingPhoto') === 'true'
   const page = Number(params.get('page') ?? 1)
   const [searchText, setSearchText] = useState(params.get('q') ?? '')
   const search = useDebounced(searchText.trim())
@@ -34,9 +35,9 @@ export function ProductsPage() {
   const products = useAsync(
     () =>
       api.get<Paginated<StaffProduct>>(
-        `/api/staff/products${queryString({ search, categoryId, status, lowStock, page, pageSize: 50 })}`,
+        `/api/staff/products${queryString({ search, categoryId, status, lowStock, missingPhoto, page, pageSize: 50 })}`,
       ),
-    [search, categoryId, status, lowStock, page],
+    [search, categoryId, status, lowStock, missingPhoto, page],
   )
 
   return (
@@ -56,7 +57,7 @@ export function ProductsPage() {
           <Search size={16} aria-hidden />
           <input
             type="search"
-            placeholder="Search by name, description or SKU"
+            placeholder="Search by name, brand, description or SKU"
             aria-label="Search products"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -84,6 +85,10 @@ export function ProductsPage() {
         <label className="checkbox">
           <input type="checkbox" checked={lowStock} onChange={(e) => update({ lowStock: String(e.target.checked) })} />
           Low stock only
+        </label>
+        <label className="checkbox">
+          <input type="checkbox" checked={missingPhoto} onChange={(e) => update({ missingPhoto: String(e.target.checked) })} />
+          Missing photo only
         </label>
       </div>
 
@@ -127,9 +132,15 @@ export function ProductsPage() {
                           <div>
                             <div className="strong">{p.name}</div>
                             <div className="muted small">
+                              {p.brand && `${p.brand} · `}
                               {p.unitLabel}
                               {p.sku && ` · ${p.sku}`}
                             </div>
+                            {!p.imageUrl && (
+                              <span className="badge badge-muted badge-small" title="Customers see a “Photo coming soon” placeholder">
+                                <ImageOff size={12} aria-hidden /> No photo
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>

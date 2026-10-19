@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Fernway Market",
+    "name": "Meeranji Supermarket",
     "slug": "fernway-market",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -24,7 +24,7 @@
     "web": {
       "output": "single",
       "favicon": "./assets/images/favicon.png",
-      "name": "Fernway Market",
+      "name": "Meeranji Supermarket",
       "themeColor": "#134D32"
     },
     "plugins": [

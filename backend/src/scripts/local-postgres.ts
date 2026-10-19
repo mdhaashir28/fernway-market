@@ -59,7 +59,7 @@ async function ensureDatabaseExists() {
 async function main() {
   if (await isPortInUse(port)) {
     console.log(`ℹ️  Something is already running on port ${port}.`);
-    console.log('   If it is the Fernway local database from an earlier run, you can keep using it.');
+    console.log('   If it is the local database from an earlier run of this project, you can keep using it.');
     console.log('   Otherwise change the port in DATABASE_URL (in .env) and try again.');
     try {
       await ensureDatabaseExists();

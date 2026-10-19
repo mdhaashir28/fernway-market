@@ -1,4 +1,4 @@
-# Putting Fernway Market online
+# Putting Meeranji Supermarket online
 
 **GitHub stores your code. It can't run your API or database.** So deploying has three parts:
 
@@ -100,7 +100,7 @@ GitHub repository**, each with a different **Root Directory**:
 
 | Vercel project | Root Directory | Environment variables to add |
 | --- | --- | --- |
-| API | `backend` | `DATABASE_URL` (added for you when you connect Neon: Project → **Storage** → **Neon**), `JWT_SECRET` (a long random string), `IMAGE_STORAGE=database`, `CORS_ORIGINS` (the dashboard and customer-app addresses, comma-separated), and for a demo `LOAD_SAMPLE_DATA=true` + `SEED_STAFF_EMAIL`, `SEED_STAFF_PASSWORD`, `SEED_CUSTOMER_EMAIL`, `SEED_CUSTOMER_PASSWORD`. Optional: `CURRENCY=INR`, `STORE_TIMEZONE=Asia/Kolkata`, `STORE_NAME`, `STORE_ADDRESS`, `STORE_PHONE` |
+| API | `backend` | `DATABASE_URL` (added for you when you connect Neon: Project → **Storage** → **Neon**), `JWT_SECRET` (a long random string), `IMAGE_STORAGE=database`, `CORS_ORIGINS` (the dashboard and customer-app addresses, comma-separated), and for a demo `LOAD_SAMPLE_DATA=true` + `SEED_STAFF_EMAIL`, `SEED_STAFF_PASSWORD`, `SEED_CUSTOMER_EMAIL`, `SEED_CUSTOMER_PASSWORD`. Store details: `STORE_NAME=Meeranji Supermarket`, `STORE_ADDRESS=#78/153 Bazaar Street, Pernambut - 635 810, Vellore District, Tamil Nadu` (no quotes needed on Vercel), `STORE_PHONE=9789562928, 9003071616`. Optional: `CURRENCY=INR`, `STORE_TIMEZONE=Asia/Kolkata` |
 | Staff dashboard | `dashboard` | `VITE_API_URL` = the API's address, e.g. `https://your-api.vercel.app` |
 | Customer app (web) | `mobile` | `EXPO_PUBLIC_API_URL` = the API's address |
 
@@ -110,6 +110,8 @@ How it works (already set up in the code):
   sample photos to the function.
 - On the first request after a deploy (or after a quiet period), the API creates or updates the database tables, and
   loads the sample data if `LOAD_SAMPLE_DATA=true` and the database is empty. That first request can take a few seconds.
+  With `LOAD_SAMPLE_DATA=true`, sample products added to the code later (for example the Meeranji catalogue) are
+  added to an existing database once, on the first request after the deploy; products you edited are left alone.
 - `dashboard/vercel.json` and `mobile/vercel.json` build the websites and make page refreshes work.
   If `VITE_API_URL` / `EXPO_PUBLIC_API_URL` is missing, the build stops with a message telling you what to add.
 - After changing an environment variable, **redeploy** that project (Deployments → ⋯ → Redeploy). The website

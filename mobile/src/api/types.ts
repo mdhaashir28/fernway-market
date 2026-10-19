@@ -21,10 +21,19 @@ export interface Paginated<T> {
   pageSize: number;
 }
 
+export interface PhoneNumber {
+  /** e.g. "+91 97895 62928" */
+  display: string;
+  /** e.g. "+919789562928", for tel: links */
+  tel: string;
+}
+
 export interface StoreInfo {
   name: string;
   address: string;
+  /** The first phone number (see `phones` for all of them). */
   phone: string;
+  phones: PhoneNumber[];
   currency: string;
   timezone: string;
   pickup: { openHour: number; closeHour: number; slotMinutes: number; leadTimeMinutes: number };
@@ -50,6 +59,7 @@ export interface Category {
 export interface Product {
   id: number;
   name: string;
+  brand: string | null;
   description: string;
   priceCents: number;
   unitLabel: string;

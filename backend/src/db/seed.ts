@@ -9,7 +9,14 @@ import { backendDir } from '../env.js';
 import { changeOrderStatus, createOrder, type OrderStatus } from '../services/order.service.js';
 import { listUpcomingSlots } from '../services/pickup.service.js';
 import { pool, withTransaction, type Db } from './pool.js';
-import { seedCategories, seedDeliveryZones, seedProducts } from './seed-data.js';
+import {
+  previousCategoryOrder,
+  SAMPLE_DATA_VERSION,
+  sampleCustomerAddress,
+  seedCategories,
+  seedDeliveryZones,
+  seedProducts,
+} from './seed-data.js';
 
 /** Sample data is allowed everywhere except production, unless LOAD_SAMPLE_DATA=true. */
 export const sampleDataAllowed = () => !config.isProduction || config.LOAD_SAMPLE_DATA;
@@ -25,56 +32,10 @@ export async function seedDatabase(log: (msg: string) => void = console.log): Pr
   }
 
   await withTransaction(async (client) => {
-    // --- Accounts -----------------------------------------------------------
     await upsertSampleAccounts(client, log);
-
-    // --- Categories ---------------------------------------------------------
-    for (const [index, category] of seedCategories.entries()) {
-      await client.query(
-        `INSERT INTO categories (name, slug, description, icon, sort_order)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (slug) DO NOTHING`,
-        [category.name, category.slug, category.description, category.icon, index + 1],
-      );
-    }
-    const { rows: categoryRows } = await client.query<{ id: number; slug: string }>('SELECT id, slug FROM categories');
-    const categoryIds = new Map(categoryRows.map((row) => [row.slug, row.id]));
-
-    // --- Products + stock ---------------------------------------------------
-    let newProducts = 0;
-    for (const product of seedProducts) {
-      const { rows } = await client.query<{ id: number }>(
-        `INSERT INTO products (category_id, sku, name, description, price_cents, unit_label, icon, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT (sku) DO NOTHING
-         RETURNING id`,
-        [
-          categoryIds.get(product.category),
-          product.sku,
-          product.name,
-          product.description,
-          product.priceCents,
-          product.unitLabel,
-          product.icon,
-          product.isActive ?? true,
-        ],
-      );
-      if (rows.length === 0) continue; // already existed
-      await client.query('INSERT INTO inventory (product_id, quantity, low_stock_threshold) VALUES ($1, $2, $3)', [
-        rows[0].id,
-        product.stock,
-        product.lowStockThreshold ?? 10,
-      ]);
-      newProducts++;
-    }
-    if (newProducts) log(`  ✔ Added ${newProducts} sample products in ${seedCategories.length} categories`);
-
-    // --- Product photos (backend/seed-images/products/<SKU>.jpg) -------------
-    const photos = samplePhotos();
-    for (const [sku, imageUrl] of photos) {
-      await client.query('UPDATE products SET image_url = $2 WHERE sku = $1 AND image_url IS NULL', [sku, imageUrl]);
-    }
-    if (photos.size) log(`  ✔ Product photos ready (${photos.size} sample photos — credits in backend/seed-images/CREDITS.md)`);
+    const alreadyLoaded = await isSampleCatalogLoaded(client);
+    await loadSampleCatalog(client, log, { fillMissingPhotos: true });
+    if (!alreadyLoaded) await updateOlderSampleData(client, log);
 
     // --- Delivery zones -----------------------------------------------------
     const { rows: zoneCount } = await client.query<{ count: number }>('SELECT count(*) AS count FROM delivery_zones');
@@ -88,9 +49,157 @@ export async function seedDatabase(log: (msg: string) => void = console.log): Pr
       }
       log(`  ✔ Added ${seedDeliveryZones.length} delivery zones`);
     }
+
+    await markSampleCatalogLoaded(client);
   });
 
   await seedSampleOrders(log);
+}
+
+/**
+ * Adds sample products that are new since this database was set up (for
+ * example after you pull an update that extends seed-data.ts). Runs on every
+ * start, but each SAMPLE_DATA_VERSION is applied only once, so products you
+ * have since edited, deactivated or given a new SKU are never brought back.
+ */
+export async function syncSampleCatalog(log: (msg: string) => void = console.log): Promise<void> {
+  if (!sampleDataAllowed()) return;
+  await withTransaction(async (client) => {
+    if (await isSampleCatalogLoaded(client)) return;
+    await loadSampleCatalog(client, log, { fillMissingPhotos: false });
+    await updateOlderSampleData(client, log);
+    await markSampleCatalogLoaded(client);
+  });
+}
+
+async function isSampleCatalogLoaded(client: Db): Promise<boolean> {
+  const { rowCount } = await client.query('SELECT 1 FROM sample_data_versions WHERE version = $1', [SAMPLE_DATA_VERSION]);
+  return Boolean(rowCount);
+}
+
+async function markSampleCatalogLoaded(client: Db) {
+  await client.query('INSERT INTO sample_data_versions (version) VALUES ($1) ON CONFLICT DO NOTHING', [SAMPLE_DATA_VERSION]);
+}
+
+/**
+ * Inserts the sample categories and products that don't exist yet (matched by
+ * category slug or name, and by product SKU). Existing rows are never changed.
+ * New products get their sample photo from backend/seed-images/products.
+ * With fillMissingPhotos, existing sample products without a photo get one too.
+ */
+async function loadSampleCatalog(client: Db, log: (msg: string) => void, { fillMissingPhotos }: { fillMissingPhotos: boolean }) {
+  // --- Categories -----------------------------------------------------------
+  // "DO NOTHING" without a target skips rows that clash on the slug OR the name.
+  for (const category of seedCategories) {
+    await client.query(
+      `INSERT INTO categories (name, slug, description, icon, sort_order)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT DO NOTHING`,
+      [category.name, category.slug, category.description, category.icon, category.sortOrder],
+    );
+  }
+  const { rows: categoryRows } = await client.query<{ id: number; slug: string; name: string }>(
+    'SELECT id, slug, lower(name) AS name FROM categories',
+  );
+  const categoryId = (slug: string) => {
+    const seed = seedCategories.find((c) => c.slug === slug)!;
+    return (categoryRows.find((row) => row.slug === slug) ?? categoryRows.find((row) => row.name === seed.name.toLowerCase()))?.id;
+  };
+
+  // --- Products + stock (one query each, so it's quick on hosted databases) --
+  const products = seedProducts
+    .map((product) => ({ ...product, categoryId: categoryId(product.category) }))
+    .filter((product) => product.categoryId !== undefined);
+  const column = <T>(pick: (p: (typeof products)[number]) => T) => products.map(pick);
+
+  const { rows: added } = await client.query<{ id: number; sku: string }>(
+    `INSERT INTO products (category_id, sku, name, brand, description, price_cents, unit_label, icon, is_active)
+     SELECT * FROM unnest($1::int[], $2::text[], $3::text[], $4::text[], $5::text[], $6::int[], $7::text[], $8::text[], $9::boolean[])
+     ON CONFLICT DO NOTHING
+     RETURNING id, sku`,
+    [
+      column((p) => p.categoryId),
+      column((p) => p.sku),
+      column((p) => p.name),
+      column((p) => p.brand ?? null),
+      column((p) => p.description),
+      column((p) => p.priceCents),
+      column((p) => p.unitLabel),
+      column((p) => p.icon),
+      column((p) => p.isActive ?? true),
+    ],
+  );
+  if (added.length) {
+    const seedBySku = new Map(products.map((p) => [p.sku, p]));
+    await client.query(
+      `INSERT INTO inventory (product_id, quantity, low_stock_threshold)
+       SELECT * FROM unnest($1::int[], $2::int[], $3::int[])`,
+      [
+        added.map((row) => row.id),
+        added.map((row) => seedBySku.get(row.sku)!.stock),
+        added.map((row) => seedBySku.get(row.sku)!.lowStockThreshold ?? 10),
+      ],
+    );
+    log(`  ✔ Added ${added.length} sample products`);
+  }
+
+  // --- Product photos (backend/seed-images/products/<SKU>.jpg) ---------------
+  const addedSkus = new Set(added.map((row) => row.sku));
+  const photos = [...samplePhotos()].filter(([sku]) => fillMissingPhotos || addedSkus.has(sku));
+  if (photos.length) {
+    const { rowCount } = await client.query(
+      `UPDATE products p SET image_url = photo.url
+       FROM unnest($1::text[], $2::text[]) AS photo(sku, url)
+       WHERE p.sku = photo.sku AND p.image_url IS NULL`,
+      [photos.map(([sku]) => sku), photos.map(([, url]) => url)],
+    );
+    if (rowCount) log(`  ✔ Added ${rowCount} sample product photos (credits in backend/seed-images/CREDITS.md)`);
+  }
+}
+
+/**
+ * Moves sample data created by the first version of the app (a generic store
+ * in "Springfield") over to Meeranji Supermarket in Pernambut. Each change only
+ * applies while the row still has its original sample values, so anything you
+ * have edited yourself is left alone.
+ */
+async function updateOlderSampleData(client: Db, log: (msg: string) => void) {
+  let changes = 0;
+  const run = async (sql: string, params: unknown[]) => {
+    changes += (await client.query(sql, params)).rowCount ?? 0;
+  };
+
+  // Delivery zones: sample postcodes → PIN codes around Pernambut.
+  const [town, nearby] = seedDeliveryZones;
+  await run(`UPDATE delivery_zones SET name = $1, postcode_prefixes = $2 WHERE name = 'Central' AND postcode_prefixes = '{1000}'`, [
+    town.name,
+    town.postcodePrefixes,
+  ]);
+  await run(
+    `UPDATE delivery_zones SET name = $1, postcode_prefixes = $2 WHERE name = 'Outer neighbourhoods' AND postcode_prefixes = '{1001,1002}'`,
+    [nearby.name, nearby.postcodePrefixes],
+  );
+
+  // The sample customer's address, so it stays inside the delivery area.
+  await run(
+    `UPDATE addresses SET line1 = $1, city = $2, postcode = $3, instructions = $4
+     WHERE line1 = '24 Elm Street' AND city = 'Springfield' AND postcode = '10001'`,
+    [sampleCustomerAddress.line1, sampleCustomerAddress.city, sampleCustomerAddress.postcode, sampleCustomerAddress.instructions],
+  );
+
+  // Put rice, dals and spices first (only categories still in their original place).
+  for (const category of seedCategories) {
+    const previous = previousCategoryOrder[category.slug];
+    if (previous === undefined || previous === category.sortOrder) continue;
+    await run('UPDATE categories SET sort_order = $2 WHERE slug = $1 AND sort_order = $3', [category.slug, category.sortOrder, previous]);
+  }
+
+  // Sample products this store doesn't sell are hidden (not deleted).
+  for (const product of seedProducts.filter((p) => p.isActive === false)) {
+    await run('UPDATE products SET is_active = false WHERE sku = $1 AND name = $2 AND is_active', [product.sku, product.name]);
+  }
+
+  if (changes) log(`  ✔ Updated ${changes} sample settings for ${config.STORE_NAME}`);
 }
 
 /**
@@ -140,10 +249,11 @@ async function upsertSampleAccounts(client: Db, log: (msg: string) => void): Pro
     log(`  ✔ Created ${account.role} account ${email}`);
 
     if (account.role === 'customer') {
+      const address = sampleCustomerAddress;
       await client.query(
         `INSERT INTO addresses (user_id, label, recipient_name, phone, line1, city, postcode, instructions, is_default)
-         VALUES ($1, 'Home', $2, '+91 98765 01234', '24 Elm Street', 'Springfield', '10001', 'Blue door — please ring the bell', true)`,
-        [rows[0].id, account.name],
+         VALUES ($1, 'Home', $2, '+91 98765 01234', $3, $4, $5, $6, true)`,
+        [rows[0].id, account.name, address.line1, address.city, address.postcode, address.instructions],
       );
     }
   }
@@ -197,28 +307,28 @@ async function seedSampleOrders(log: (msg: string) => void) {
   const delivery = { type: 'delivery' as const, addressId: customer.addressId };
   const plans = [
     {
-      items: [{ productId: id('FV-001'), quantity: 1 }, { productId: id('DE-001'), quantity: 2 }, { productId: id('BK-001'), quantity: 1 }],
+      items: [{ productId: id('FV-001'), quantity: 1 }, { productId: id('RD-001'), quantity: 1 }, { productId: id('SP-007'), quantity: 1 }],
       fulfillment: { type: 'pickup' as const, pickupSlotId: slots[0].id },
       paymentMethod: 'pay_on_fulfillment' as const,
       notes: 'Please pick ripe bananas!',
       statuses: [] as OrderStatus[],
     },
     {
-      items: [{ productId: id('MF-001'), quantity: 1 }, { productId: id('PA-001'), quantity: 2 }, { productId: id('PA-003'), quantity: 3 }],
+      items: [{ productId: id('RD-006'), quantity: 1 }, { productId: id('PA-007'), quantity: 2 }, { productId: id('HH-005'), quantity: 1 }],
       fulfillment: delivery,
       paymentMethod: 'demo_card' as const,
       notes: null,
       statuses: ['preparing'] as OrderStatus[],
     },
     {
-      items: [{ productId: id('DR-003'), quantity: 1 }, { productId: id('SN-002'), quantity: 2 }],
+      items: [{ productId: id('DR-006'), quantity: 1 }, { productId: id('SN-005'), quantity: 2 }],
       fulfillment: { type: 'pickup' as const, pickupSlotId: slots[1].id },
       paymentMethod: 'pay_on_fulfillment' as const,
       notes: null,
       statuses: ['preparing', 'ready_for_pickup'] as OrderStatus[],
     },
     {
-      items: [{ productId: id('DE-002'), quantity: 1 }, { productId: id('FV-002'), quantity: 2 }, { productId: id('HH-002'), quantity: 1 }],
+      items: [{ productId: id('DE-002'), quantity: 1 }, { productId: id('DE-006'), quantity: 2 }, { productId: id('PC-005'), quantity: 1 }],
       fulfillment: delivery,
       paymentMethod: 'pay_on_fulfillment' as const,
       notes: null,

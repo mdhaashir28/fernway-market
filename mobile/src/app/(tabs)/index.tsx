@@ -7,6 +7,7 @@ import { API_URL, api } from '@/api/client';
 import type { Category, Paginated, Product } from '@/api/types';
 import { ProductCard } from '@/components/products';
 import { ErrorView, LoadingView } from '@/components/states';
+import { StoreContact } from '@/components/StoreContact';
 import { SectionTitle } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
@@ -58,7 +59,7 @@ export default function HomeScreen() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.brand} accessibilityRole="header">
-            {store?.name ?? 'Fernway Market'}
+            {store?.name ?? 'Meeranji Supermarket'}
           </Text>
           <Text style={styles.greeting}>{user ? `Hi ${user.name.split(' ')[0]}, what do you need today?` : 'Fresh groceries, delivered or ready to collect'}</Text>
         </View>
@@ -72,7 +73,9 @@ export default function HomeScreen() {
         style={({ pressed }) => [styles.searchBar, pressed && { opacity: 0.85 }]}
       >
         <Ionicons name="search" size={20} color={colors.textMuted} />
-        <Text style={styles.searchText}>Search milk, bread, apples…</Text>
+        <Text style={styles.searchText} numberOfLines={1}>
+          Search dal, rice, Maggi, soap…
+        </Text>
       </Pressable>
 
       {/* Delivery or pickup */}
@@ -146,6 +149,18 @@ export default function HomeScreen() {
           )}
         </>
       ) : null}
+
+      {/* Store details footer */}
+      {store && (
+        <View style={styles.footer} accessibilityRole="summary">
+          <Text style={styles.footerTitle}>Visit or call us</Text>
+          <Text style={styles.footerName}>{store.name}</Text>
+          <StoreContact store={store} />
+          <Text style={styles.footerNote}>
+            Store pickup {String(store.pickup.openHour).padStart(2, '0')}:00 – {String(store.pickup.closeHour).padStart(2, '0')}:00
+          </Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -204,4 +219,17 @@ const styles = StyleSheet.create({
   row: { gap: 0 },
   seeAll: { color: colors.primary, fontWeight: '700', fontSize: 15 },
   debug: { textAlign: 'center', color: colors.textMuted, fontSize: 13, marginTop: -spacing.lg },
+
+  footer: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  footerTitle: { fontSize: font.small, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  footerName: { fontSize: font.large, fontWeight: '800', color: colors.primaryDarker, marginBottom: spacing.xs },
+  footerNote: { fontSize: 14, color: colors.textMuted, marginTop: spacing.xs },
 });

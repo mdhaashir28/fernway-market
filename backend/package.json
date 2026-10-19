@@ -2,7 +2,7 @@
   "name": "fernway-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "REST API for the Fernway Market shopping app",
+  "description": "REST API for the Meeranji Supermarket shopping app",
   "type": "module",
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/index.ts",

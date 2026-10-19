@@ -2,8 +2,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { API_URL } from '@/api/client';
+import { StoreContact } from '@/components/StoreContact';
 import { Button, Card } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
@@ -39,7 +40,7 @@ export default function AccountScreen() {
         </Card>
       ) : (
         <Card style={{ gap: spacing.md }}>
-          <Text style={styles.welcomeTitle}>Welcome to {store?.name ?? 'Fernway Market'} 👋</Text>
+          <Text style={styles.welcomeTitle}>Welcome to {store?.name ?? 'Meeranji Supermarket'} 👋</Text>
           <Text style={styles.body}>Log in or create an account to check out, save addresses and track your orders.</Text>
           <Button title="Log in" onPress={() => router.push('/login')} />
           <Button title="Create an account" variant="secondary" onPress={() => router.push('/signup')} />
@@ -55,20 +56,15 @@ export default function AccountScreen() {
 
       {store && (
         <Card style={{ gap: spacing.md }}>
-          <Text style={styles.sectionTitle}>Our store</Text>
-          <InfoRow icon="location" text={store.address} />
-          {store.phone ? (
-            <Pressable onPress={() => Linking.openURL(`tel:${store.phone.replace(/\s/g, '')}`)} accessibilityRole="link">
-              <InfoRow icon="call" text={store.phone} link />
-            </Pressable>
-          ) : null}
+          <Text style={styles.sectionTitle}>Visit or call {store.name}</Text>
+          <StoreContact store={store} />
           <InfoRow icon="time" text={`Pickup times ${hours}`} />
           {store.deliveryZones.length > 0 && (
             <View style={{ gap: 4 }}>
               <Text style={styles.subTitle}>Delivery areas</Text>
               {store.deliveryZones.map((zone) => (
                 <Text key={zone.name} style={styles.muted}>
-                  • {zone.name} (postcodes {zone.postcodePrefixes.join(', ')}…): {zone.feeCents ? money(zone.feeCents) : 'free'}
+                  • {zone.name} (PIN codes {zone.postcodePrefixes.join(', ')}): {zone.feeCents ? money(zone.feeCents) : 'free'}
                   {zone.freeDeliveryThresholdCents ? `, free over ${money(zone.freeDeliveryThresholdCents)}` : ''}
                 </Text>
               ))}
@@ -94,11 +90,11 @@ function MenuRow({ icon, label, onPress }: { icon: ComponentProps<typeof Ionicon
   );
 }
 
-function InfoRow({ icon, text, link }: { icon: ComponentProps<typeof Ionicons>['name']; text: string; link?: boolean }) {
+function InfoRow({ icon, text }: { icon: ComponentProps<typeof Ionicons>['name']; text: string }) {
   return (
     <View style={styles.infoRow}>
       <Ionicons name={icon} size={20} color={colors.primary} />
-      <Text style={[styles.body, { flex: 1 }, link && { color: colors.primary, fontWeight: '700' }]}>{text}</Text>
+      <Text style={[styles.body, { flex: 1 }]}>{text}</Text>
     </View>
   );
 }

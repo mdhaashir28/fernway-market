@@ -5,7 +5,7 @@ import { createApp } from './app.js';
 import { config } from './config.js';
 import { runMigrations } from './db/migrations.js';
 import { pool, waitForDatabase } from './db/pool.js';
-import { isDatabaseEmpty, sampleDataAllowed, seedDatabase, syncSampleAccounts } from './db/seed.js';
+import { isDatabaseEmpty, sampleDataAllowed, seedDatabase, syncSampleAccounts, syncSampleCatalog } from './db/seed.js';
 
 /** This computer's Wi-Fi/LAN addresses — the ones a phone on the same network can reach. */
 function lanAddresses(): string[] {
@@ -27,6 +27,8 @@ async function main() {
   }
   // Make the sample logins match the SEED_* settings (e.g. after you change a password in .env).
   await syncSampleAccounts();
+  // Add sample products that are new since this database was set up (once per catalogue version).
+  await syncSampleCatalog();
 
   const app = createApp();
   // 0.0.0.0 = accept connections from other devices on your network (your phone).

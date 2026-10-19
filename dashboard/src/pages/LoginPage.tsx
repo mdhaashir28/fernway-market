@@ -1,4 +1,4 @@
-import { Eye, EyeOff, LoaderCircle } from 'lucide-react'
+import { Eye, EyeOff, LoaderCircle, MapPin, Phone } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import { Logo } from '../components/Layout'
@@ -39,10 +39,24 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
-      <section className="login-brand" aria-hidden>
+      <section className="login-brand" aria-label="Store details">
         <Logo />
         <h2>{store.name}</h2>
         <p>Manage orders, products and stock — all in one place.</p>
+        {(store.address || store.phones.length > 0) && (
+          <ul className="login-contact">
+            {store.address && (
+              <li>
+                <MapPin size={18} aria-hidden /> {store.address}
+              </li>
+            )}
+            {store.phones.map((phone) => (
+              <li key={phone.tel}>
+                <Phone size={18} aria-hidden /> <a href={`tel:${phone.tel}`}>{phone.display}</a>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
       <section className="login-panel">
         <form className="login-form card" onSubmit={handleSubmit} noValidate>

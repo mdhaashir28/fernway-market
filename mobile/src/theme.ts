@@ -1,8 +1,8 @@
-// Fernway Market brand: deep fern green, warm amber, calm neutrals.
+// Meeranji Supermarket colours: deep green, warm amber, calm neutrals.
 // Text colours meet WCAG AA contrast (4.5:1) on their backgrounds.
 
 export const colors = {
-  primary: '#1B6B45', // fern green — buttons, links, active tab
+  primary: '#1B6B45', // deep green — buttons, links, active tab
   primaryDark: '#134D32',
   primaryDarker: '#0F3D2A',
   primarySoft: '#E3F1E8',

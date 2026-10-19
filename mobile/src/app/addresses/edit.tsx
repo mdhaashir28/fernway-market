@@ -93,7 +93,7 @@ export default function AddressEditScreen() {
     if (form.phone.trim().length < 6) e.phone = 'Please enter a phone number';
     if (!form.line1.trim()) e.line1 = 'Please enter the street address';
     if (!form.city.trim()) e.city = 'Please enter the town or city';
-    if (form.postcode.trim().length < 3) e.postcode = 'Please enter a valid postcode';
+    if (form.postcode.trim().length < 3) e.postcode = 'Please enter a valid PIN code';
     return e;
   }
 
@@ -137,12 +137,14 @@ export default function AddressEditScreen() {
         <TextField label="Flat, floor, building (optional)" value={form.line2} onChangeText={set('line2')} error={errors.line2} />
         <TextField label="Town / city" value={form.city} onChangeText={set('city')} error={errors.city} />
         <TextField
-          label="Postcode"
+          label="PIN code"
           value={form.postcode}
           onChangeText={set('postcode')}
           error={errors.postcode}
           autoCapitalize="characters"
           autoComplete="postal-code"
+          keyboardType="number-pad"
+          hint="6-digit PIN, e.g. 635810"
           maxLength={12}
         />
         <View style={styles.checkBox}>

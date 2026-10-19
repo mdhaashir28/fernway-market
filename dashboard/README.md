@@ -1,4 +1,4 @@
-# Fernway Market — staff dashboard
+# Meeranji Supermarket — staff dashboard
 
 React + TypeScript + Vite website for store staff.
 

@@ -11,6 +11,7 @@ import { useAsync } from '../lib/useAsync'
 
 interface FormState {
   name: string
+  brand: string
   categoryId: string
   price: string
   unitLabel: string
@@ -24,6 +25,7 @@ interface FormState {
 
 const EMPTY: FormState = {
   name: '',
+  brand: '',
   categoryId: '',
   price: '',
   unitLabel: 'each',
@@ -37,6 +39,7 @@ const EMPTY: FormState = {
 
 const toForm = (p: StaffProduct): FormState => ({
   name: p.name,
+  brand: p.brand ?? '',
   categoryId: String(p.categoryId),
   price: centsToInput(p.priceCents),
   unitLabel: p.unitLabel,
@@ -81,7 +84,7 @@ export function ProductFormPage() {
     if (!form.categoryId) e.categoryId = 'Choose a category'
     const cents = inputToCents(form.price)
     if (cents === null || cents <= 0) e.priceCents = 'Enter a price such as 45 or 45.50'
-    if (!form.unitLabel.trim()) e.unitLabel = 'Unit is required, e.g. "each" or "1 kg"'
+    if (!form.unitLabel.trim()) e.unitLabel = 'Pack size is required, e.g. "1 kg" or "each"'
     if (isNew && !isWholeNumber(form.stockQuantity)) e.stockQuantity = 'Enter a whole number (0 or more)'
     if (!isWholeNumber(form.lowStockThreshold)) e.lowStockThreshold = 'Enter a whole number (0 or more)'
     return e
@@ -96,6 +99,7 @@ export function ProductFormPage() {
 
     const body: Record<string, unknown> = {
       name: form.name.trim(),
+      brand: form.brand.trim() || null,
       categoryId: Number(form.categoryId),
       priceCents: inputToCents(form.price),
       unitLabel: form.unitLabel.trim(),
@@ -160,6 +164,9 @@ export function ProductFormPage() {
           <Field label="Name" htmlFor="name" error={errors.name} required>
             <input id="name" value={form.name} maxLength={120} onChange={(e) => set('name', e.target.value)} />
           </Field>
+          <Field label="Brand" htmlFor="brand" error={errors.brand} hint='Optional, e.g. "Surf Excel", "Maggi" or "Store packed"'>
+            <input id="brand" value={form.brand} maxLength={60} onChange={(e) => set('brand', e.target.value)} />
+          </Field>
           <div className="field-row">
             <Field label="Category" htmlFor="category" error={errors.categoryId} required>
               <select id="category" value={form.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
@@ -177,7 +184,7 @@ export function ProductFormPage() {
             </Field>
           </div>
           <div className="field-row">
-            <Field label="Unit" htmlFor="unit" error={errors.unitLabel} required hint='What one item is, e.g. "each", "1 kg bag", "pack of 6"'>
+            <Field label="Pack size" htmlFor="unit" error={errors.unitLabel} required hint='What one item is, e.g. "1 kg", "500 ml", "4 × 100 g", "each"'>
               <input id="unit" value={form.unitLabel} maxLength={40} onChange={(e) => set('unitLabel', e.target.value)} />
             </Field>
             <Field label="SKU / barcode" htmlFor="sku" error={errors.sku} hint="Optional, must be unique">
@@ -348,6 +355,12 @@ function ImageCard({
           </button>
         )}
       </div>
+      {!hasImage && (
+        <p className="alert alert-info" role="note">
+          No photo yet — customers see a “Photo coming soon” placeholder. Use a photo you're allowed to use, such as one
+          you take of the pack on your shelf.
+        </p>
+      )}
       <p className="hint">JPG, PNG or WebP up to 5 MB. Square photos look best.</p>
       <Field label="Emoji icon (used when there is no photo)" htmlFor="icon" hint="Optional, e.g. 🍎">
         <input id="icon" value={icon} maxLength={16} onChange={(e) => onIconChange(e.target.value)} className="emoji-input" />

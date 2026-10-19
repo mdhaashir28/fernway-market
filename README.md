@@ -1,4 +1,6 @@
-# 🌿 Fernway Market
+# 🛒 Meeranji Supermarket
+
+**#78/153 Bazaar Street, Pernambut - 635 810, Vellore District, Tamil Nadu** · 📞 97895 62928 · 90030 71616
 
 A complete shopping app for a single supermarket:
 
@@ -58,10 +60,12 @@ Customer app     customer@fernway.local  /  <random password>
 npm run dev
 ```
 
-Wait until you see **`🛒 Fernway Market API is running`**. The first start also:
+Wait until you see **`🛒 Meeranji Supermarket API is running`**. The first start also:
 
 - creates all the database tables, and
-- adds sample data: 46 products with photos, 9 categories, 2 delivery zones, 4 example orders and the two sample accounts.
+- adds sample data: 97 products in 12 categories (rice, dals, spices, Hindustan Unilever household and personal-care
+  brands, Nestlé brands and more), 2 delivery zones around Pernambut, 4 example orders and the two sample accounts.
+  See [Sample products, prices and photos](#sample-products-prices-and-photos).
 
 Then open **http://localhost:5173** and log in with the **staff** account.
 
@@ -91,23 +95,24 @@ Log in with the **customer** account (or create a new account in the app).
 
 ## 5. Try it out
 
-1. **Customer app:** browse a category, search "milk", add items to the cart, then go to **Checkout**.
-   - **Delivery:** the sample address (postcode `10001`) is in the delivery area: ₹30 fee, **free over ₹500**.
+1. **Customer app:** browse a category, search "dal", "paruppu", "Maggi" or "surf excel", add items to the cart, then go to **Checkout**.
+   - **Delivery:** the sample address (PIN code `635810`, Pernambut) is in the delivery area: ₹30 fee, **free over ₹500**.
    - **Pickup:** choose a day and a collection time. Pickup is always free.
    - Choose **Pay on delivery/collection**, or the clearly labelled **Demo card payment** (nothing is charged).
 2. **Staff dashboard:** your new order appears under **Orders** (it refreshes every 30 seconds). Open it and press
    **Start preparing** → **Mark ready for pickup / Send out for delivery** → **Mark as completed**.
 3. **Customer app:** the order screen updates by itself (every 20 seconds, or pull down to refresh).
 
-**Postcodes to test the delivery area**
+**PIN codes to test the delivery area** (sample zones — check them and set your real areas and fees)
 
-| Postcode | Result |
+| PIN code | Result |
 | --- | --- |
-| `10001` – `10009` | ✅ "Central": ₹30 delivery, free over ₹500 |
-| `10010` – `10029` | ✅ "Outer neighbourhoods": ₹50 delivery, free over ₹999, minimum order ₹199 |
-| anything else (e.g. `560001`) | ❌ outside the delivery area, so pickup only |
+| `635810` (Pernambut) | ✅ "Pernambut": ₹30 delivery, free over ₹500 |
+| `635802` (Ambur), `632602` (Gudiyattam) | ✅ "Ambur & Gudiyattam": ₹50 delivery, free over ₹999, minimum order ₹199 |
+| anything else (e.g. `600001`) | ❌ outside the delivery area, so pickup only |
 
-Change the zones to your real area in the dashboard under **Delivery zones**. For example, a zone with the prefix `5600` covers Bengaluru PIN codes `560001`–`560099`.
+Change the zones in the dashboard under **Delivery zones**. A zone can list full PIN codes, or a shorter prefix:
+`6358` covers every PIN code from `635800` to `635899`.
 
 ---
 
@@ -139,7 +144,7 @@ All settings live in **one file**, `.env`, in the project folder. `npm run setup
 | --- | --- |
 | `DATABASE_URL` | Where the database is (user, password, port, name) |
 | `JWT_SECRET` | Secret used to sign logins. Long and random, never share it |
-| `STORE_NAME`, `STORE_ADDRESS`, `STORE_PHONE` | Shown in the apps |
+| `STORE_NAME`, `STORE_ADDRESS`, `STORE_PHONE` | Shown in the apps. Put the address in quotes (it starts with `#`). `STORE_PHONE` can hold several numbers separated by commas, e.g. `9789562928, 9003071616`; each one gets a tap-to-call button in the app |
 | `CURRENCY` | `INR` by default. Prices are stored in paise (₹45.50 = `4550`) |
 | `STORE_TIMEZONE` | Used for pickup times and "today" (e.g. `Asia/Kolkata`) |
 | `PICKUP_*` | Pickup opening hours, slot length, orders per slot, days ahead, notice time |
@@ -177,16 +182,25 @@ that needs API keys. You would use their *test mode* first, and card details wou
 never to this API.
 
 ### Delivery area (no paid maps service)
-Instead of a paid maps/geocoding API (like Google Maps), the delivery area is defined by **postcode prefixes**.
-It's free, works offline and is easy for staff to change in the dashboard.
+Instead of a paid maps/geocoding API (like Google Maps), the delivery area is defined by **PIN codes** (or PIN-code
+prefixes). It's free, works offline and is easy for staff to change in the dashboard.
 
-### Product photos
-- Staff upload photos in the dashboard (**Products → Edit → Upload photo**, JPG/PNG/WebP up to 5 MB).
-  On your computer they're saved in `backend/uploads/products/`. With `IMAGE_STORAGE=database` (used for the
-  online version) they're stored in PostgreSQL instead, so they survive redeploys. A very large shop might
-  later move them to cloud storage such as Amazon S3.
-- The **sample photos** come from Wikimedia Commons under free licences. Some licences require credit, which is
-  given in [backend/seed-images/CREDITS.md](backend/seed-images/CREDITS.md). Replace them with your own photos before going live.
+### Sample products, prices and photos
+- **All sample prices and stock levels are made-up demo values**, not official or current prices. Check each
+  product in the dashboard (**Products → Edit**) and set your own prices, pack sizes and stock before taking real orders.
+- Each product has a name, **brand**, category, **pack size**, price, description, stock and a photo (or placeholder).
+  Staples the store packs itself use the brand "Store packed". Search finds products by name, brand, Tamil name
+  (e.g. "paruppu"), description and SKU, with or without accents ("nescafe" finds Nescafé).
+- **Loading the sample products into an existing database:** just restart the API (`npm run dev`). On start it adds
+  any sample products that are new since your database was created, once, without touching products you have
+  edited. You can also run `npm run db:seed`, which additionally fills in sample photos for products that have none.
+- **Photos:** 62 products have real photos from Wikimedia Commons, used under free licences and credited in
+  [backend/seed-images/CREDITS.md](backend/seed-images/CREDITS.md). None of them are official brand images.
+  Products without a photo — all the Hindustan Unilever and Nestlé items, and a few staples — show a clearly labelled
+  **"Photo coming soon"** placeholder; the dashboard marks them **No photo** and the **Missing photo only** filter lists them.
+- **Adding photos:** **Products → Edit → Upload photo** (JPG/PNG/WebP up to 5 MB). Use photos you're allowed to use —
+  the easiest is to photograph the packs on your own shelves. On your computer they're saved in
+  `backend/uploads/products/`; with `IMAGE_STORAGE=database` (used online) they're stored in PostgreSQL, so they survive redeploys.
 
 ### Stock can't be oversold
 When an order is placed, the API locks the stock rows, re-checks every price and quantity, and only then
@@ -222,13 +236,13 @@ fernway-market/
 │   └── API.md              ← every endpoint with examples
 ├── backend/                ← API (Node.js + Express + TypeScript)
 │   ├── db/migrations/      ← database schema (SQL)
-│   ├── seed-images/        ← sample product photos + CREDITS.md
+│   ├── seed-images/        ← sample product photos + CREDITS.md (photo credits, products still needing photos)
 │   ├── uploads/            ← photos uploaded by staff
 │   ├── src/
 │   │   ├── routes/         ← URL endpoints (customer + staff/)
 │   │   ├── services/       ← business rules: checkout, orders, delivery, pickup slots
 │   │   ├── middleware/     ← login checks, error handling
-│   │   ├── db/             ← connection, migrations runner, sample data
+│   │   ├── db/             ← connection, migrations runner, sample data (seed-data.ts = sample catalogue)
 │   │   └── scripts/        ← db:local, db:migrate, db:seed, db:reset, create-staff
 │   └── test/               ← automated API tests
 ├── dashboard/              ← staff website (React + Vite)

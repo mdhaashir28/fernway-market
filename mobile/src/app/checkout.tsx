@@ -10,6 +10,7 @@ import { ApiError, api } from '@/api/client';
 import type { Address, CheckoutIssue, FulfillmentType, Order, PaymentMethod, PickupSlot, Quote } from '@/api/types';
 import { RadioCard } from '@/components/RadioCard';
 import { EmptyState, LoadingView } from '@/components/states';
+import { StoreContact } from '@/components/StoreContact';
 import { Badge, Banner, Button, Card, Chip, SectionTitle, TextField } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
@@ -244,12 +245,12 @@ export default function CheckoutScreen() {
         {type === 'pickup' && (
           <View style={styles.section}>
             <SectionTitle>Collection time</SectionTitle>
-            <Card style={styles.storeCard}>
-              <Ionicons name="location" size={22} color={colors.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.optionTitle}>{store?.name ?? 'Our store'}</Text>
-                <Text style={styles.body}>{store?.address}</Text>
+            <Card style={{ gap: spacing.sm }}>
+              <View style={styles.storeCard}>
+                <Ionicons name="storefront" size={22} color={colors.primary} />
+                <Text style={[styles.optionTitle, { flex: 1 }]}>Collect from {store?.name ?? 'our store'}</Text>
               </View>
+              {store && <StoreContact store={store} />}
             </Card>
             {slots.loading && !slots.data ? (
               <ActivityIndicator color={colors.primary} />
@@ -437,7 +438,7 @@ const styles = StyleSheet.create({
   body: { fontSize: 15, color: colors.textMuted, lineHeight: 21 },
   okText: { fontSize: 14, color: colors.primaryDark, fontWeight: '600', marginTop: 4 },
   badText: { fontSize: 14, color: colors.danger, fontWeight: '600', marginTop: 4 },
-  storeCard: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  storeCard: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
   slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   slot: {
     flexBasis: '45%', // two equal columns

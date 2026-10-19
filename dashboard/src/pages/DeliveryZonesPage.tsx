@@ -17,7 +17,7 @@ export function DeliveryZonesPage() {
     <>
       <PageHeader
         title="Delivery zones"
-        subtitle="Where you deliver and what it costs. A customer's postcode must start with one of a zone's prefixes."
+        subtitle="Where you deliver and what it costs. A customer's PIN code must start with one of a zone's PIN codes or prefixes."
         actions={
           <button className="btn btn-primary" onClick={() => setEditing('new')}>
             <Plus size={16} aria-hidden /> New zone
@@ -25,8 +25,9 @@ export function DeliveryZonesPage() {
         }
       />
       <div className="alert alert-info">
-        Postcode prefixes are a free, simple way to define your service area. For example, the prefix <code>1000</code> covers
-        10001–10009 and <code>SW1</code> covers SW1A, SW1P, … If a postcode matches several zones, the longest prefix wins.
+        Enter full 6-digit PIN codes (for example <code>635810</code> for Pernambut), or a shorter prefix to cover several:{' '}
+        <code>6358</code> covers every PIN code from 635800 to 635899. If a PIN code matches several zones, the longest match
+        wins.
       </div>
       <section className="card">
         {zones.error && !zones.data ? (
@@ -41,7 +42,7 @@ export function DeliveryZonesPage() {
               <thead>
                 <tr>
                   <th>Zone</th>
-                  <th>Postcodes starting with</th>
+                  <th>PIN codes</th>
                   <th className="num">Fee</th>
                   <th className="num">Free delivery over</th>
                   <th className="num">Minimum order</th>
@@ -169,11 +170,11 @@ function ZoneDialog({ zone, onClose, onSaved }: { zone: DeliveryZone | null; onC
         <input id="zone-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} autoFocus />
       </Field>
       <Field
-        label="Postcode prefixes"
+        label="PIN codes or prefixes"
         htmlFor="zone-prefixes"
         error={errors.postcodePrefixes}
         required
-        hint="Separate with commas, e.g. 1000, 1001, SW1"
+        hint="Separate with commas, e.g. 635810, 635802"
       >
         <textarea id="zone-prefixes" rows={2} value={prefixes} onChange={(e) => setPrefixes(e.target.value)} />
       </Field>

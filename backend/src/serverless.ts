@@ -4,7 +4,7 @@
 // each cold start waits for prepareDatabase().
 import { runMigrations } from './db/migrations.js';
 import { pool } from './db/pool.js';
-import { isDatabaseEmpty, sampleDataAllowed, seedDatabase, syncSampleAccounts } from './db/seed.js';
+import { isDatabaseEmpty, sampleDataAllowed, seedDatabase, syncSampleAccounts, syncSampleCatalog } from './db/seed.js';
 
 const SEED_LOCK_ID = 727275; // stops two cold starts loading sample data at the same time
 
@@ -25,6 +25,8 @@ export function prepareDatabase(): Promise<void> {
       if (await isDatabaseEmpty()) await seedDatabase(() => {});
       // Make the sample logins match the SEED_* settings (e.g. after a password change on Vercel).
       await syncSampleAccounts((msg) => console.log(msg.trim()));
+      // Add sample products that are new since the database was set up (once per catalogue version).
+      await syncSampleCatalog((msg) => console.log(msg.trim()));
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK').catch(() => {});

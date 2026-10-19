@@ -18,6 +18,7 @@ const listQuery = z.object({
   categoryId: z.coerce.number().int().positive().optional(),
   status: z.enum(['active', 'inactive', 'all']).default('all'),
   lowStock: queryBoolean.optional(),
+  missingPhoto: queryBoolean.optional(),
   sort: z.enum(['name', 'price_asc', 'price_desc', 'newest', 'stock_asc']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(200).default(50),
@@ -40,6 +41,7 @@ staffProductsRouter.get('/:id', async (req, res) => {
 const productFields = {
   name: z.string({ error: 'Name is required' }).trim().min(1, 'Name is required').max(120),
   categoryId: z.number({ error: 'Choose a category' }).int().positive('Choose a category'),
+  brand: optionalText(60),
   description: z.string().trim().max(2000),
   priceCents: z
     .number({ error: 'Price is required' })
@@ -55,6 +57,7 @@ const productFields = {
 };
 
 const createSchema = z.object(productFields).partial({
+  brand: true,
   description: true,
   unitLabel: true,
   sku: true,
@@ -76,12 +79,13 @@ staffProductsRouter.post('/', async (req, res) => {
   const productId = await withTransaction(async (client) => {
     await assertCategoryExists(client, body.categoryId);
     const { rows } = await client.query<{ id: number }>(
-      `INSERT INTO products (category_id, sku, name, description, price_cents, unit_label, icon, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      `INSERT INTO products (category_id, sku, name, brand, description, price_cents, unit_label, icon, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
       [
         body.categoryId,
         body.sku ?? null,
         body.name,
+        body.brand ?? null,
         body.description ?? '',
         body.priceCents,
         body.unitLabel ?? 'each',
@@ -127,6 +131,7 @@ staffProductsRouter.patch('/:id', async (req, res) => {
       {
         name: 'name',
         categoryId: 'category_id',
+        brand: 'brand',
         description: 'description',
         priceCents: 'price_cents',
         unitLabel: 'unit_label',

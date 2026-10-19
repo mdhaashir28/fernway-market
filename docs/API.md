@@ -1,4 +1,4 @@
-# Fernway Market API reference
+# Meeranji Supermarket API reference
 
 Base URL (local): `http://localhost:4000`
 
@@ -74,14 +74,18 @@ The staff dashboard uses this too and only lets in users with `"role": "staff"`.
 Store details, delivery zones and payment options.
 ```json
 {
-  "name": "Fernway Market",
-  "address": "12 Market Street, Springfield",
-  "phone": "+91 98765 43210",
+  "name": "Meeranji Supermarket",
+  "address": "#78/153 Bazaar Street, Pernambut - 635 810, Vellore District, Tamil Nadu",
+  "phone": "+91 97895 62928",
+  "phones": [
+    { "display": "+91 97895 62928", "tel": "+919789562928" },
+    { "display": "+91 90030 71616", "tel": "+919003071616" }
+  ],
   "currency": "INR",
   "timezone": "Asia/Kolkata",
   "pickup": { "openHour": 9, "closeHour": 20, "slotMinutes": 60, "leadTimeMinutes": 60 },
   "deliveryZones": [
-    { "name": "Central", "postcodePrefixes": ["1000"], "feeCents": 3000, "freeDeliveryThresholdCents": 50000, "minOrderCents": 0 }
+    { "name": "Pernambut", "postcodePrefixes": ["635810"], "feeCents": 3000, "freeDeliveryThresholdCents": 50000, "minOrderCents": 0 }
   ],
   "paymentMethods": [
     { "id": "pay_on_fulfillment", "label": "Pay on delivery or collection", "description": "Pay by card or cash when you receive your order.", "isDemo": false },
@@ -89,11 +93,13 @@ Store details, delivery zones and payment options.
   ]
 }
 ```
+`phones` comes from `STORE_PHONE` (one or more numbers separated by commas). Use `tel` for tap-to-call links
+(`tel:+919789562928`) and `display` to show the number. `phone` is the first number, kept for older apps.
 
 ### `GET /api/categories`
 Visible categories with how many active products each has.
 ```json
-{ "items": [ { "id": 1, "name": "Fruit & Veg", "slug": "fruit-veg", "description": "Fresh fruit, vegetables and salad", "icon": "🥦", "productCount": 9 } ] }
+{ "items": [ { "id": 10, "name": "Rice, Dals & Grains", "slug": "rice-dals", "description": "Ponni, idli and dosa rice, dals and ragi", "icon": "🌾", "productCount": 12 } ] }
 ```
 
 ### `GET /api/products`
@@ -101,7 +107,7 @@ Search and filter active products. All query parameters are optional:
 
 | Parameter | Example | Meaning |
 | --- | --- | --- |
-| `search` | `milk` | Matches name, description, category or SKU |
+| `search` | `dal` | Matches name, brand, description, category or SKU. Accents are ignored (`nescafe` finds Nescafé). Names that start with the text come first, then name/brand matches, then the rest |
 | `categoryId` | `3` | Only this category |
 | `inStock` | `true` | Hide out-of-stock products |
 | `minPriceCents` / `maxPriceCents` | `5000` | Price range in paise |
@@ -116,10 +122,11 @@ Search and filter active products. All query parameters are optional:
     {
       "id": 1,
       "name": "Bananas",
+      "brand": null,
       "description": "Ripe, sweet bananas — perfect for breakfast, smoothies or baking.",
       "priceCents": 4500,
       "unitLabel": "6 pcs",
-      "imageUrl": "/uploads/products/sample-fv-001.jpg",
+      "imageUrl": "/sample-images/FV-001.jpg",
       "icon": "🍌",
       "categoryId": 1,
       "categoryName": "Fruit & Veg",
@@ -134,8 +141,10 @@ Search and filter active products. All query parameters are optional:
 }
 ```
 `stockStatus` is `in_stock`, `low_stock` (at or below the store's alert level) or `out_of_stock`.
-`imageUrl` is relative to the API: load it from `http://localhost:4000/uploads/…`. If it's `null`, show `icon`
-(or `categoryIcon`) instead.
+`brand` is the brand on the pack (e.g. "Surf Excel", "Maggi", or "Store packed" for staples the store packs itself),
+or `null`. `unitLabel` is the pack size (e.g. "1 kg", "4 × 100 g").
+`imageUrl` is relative to the API: load it from `http://localhost:4000/…`. If it's `null` there's no photo yet: the
+apps show a "Photo coming soon" placeholder with `icon` (or `categoryIcon`).
 
 ### `GET /api/products/:id`
 `{ "product": { …same fields as above… } }`. Inactive products return `404`.
@@ -144,23 +153,23 @@ Search and filter active products. All query parameters are optional:
 
 ## Delivery & pickup
 
-### `GET /api/delivery/check?postcode=10001&subtotalCents=9000`
+### `GET /api/delivery/check?postcode=635810&subtotalCents=9000`
 `subtotalCents` is optional; when given, `feeCents` takes free delivery into account.
 ```json
 {
-  "postcode": "10001",
+  "postcode": "635810",
   "available": true,
-  "zone": { "id": 1, "name": "Central" },
+  "zone": { "id": 1, "name": "Pernambut" },
   "feeCents": 3000,
   "standardFeeCents": 3000,
   "freeDeliveryThresholdCents": 50000,
   "minOrderCents": 0,
-  "message": "Great news — we deliver to 10001 (Central). Free delivery on orders over ₹500."
+  "message": "Great news — we deliver to 635810 (Pernambut). Free delivery on orders over ₹500."
 }
 ```
 Outside the area:
 ```json
-{ "postcode": "560001", "available": false, "message": "Sorry, we don't deliver to 560001 yet. You can still order for store pickup." }
+{ "postcode": "600001", "available": false, "message": "Sorry, we don't deliver to 600001 yet. You can still order for store pickup." }
 ```
 
 ### `GET /api/pickup-slots`
@@ -168,7 +177,7 @@ Collection times for today and the next few days (full slots included, so apps c
 ```json
 {
   "timezone": "Asia/Kolkata",
-  "storeAddress": "12 Market Street, Springfield",
+  "storeAddress": "#78/153 Bazaar Street, Pernambut - 635 810, Vellore District, Tamil Nadu",
   "items": [
     { "id": 2, "startsAt": "2026-10-13T04:30:00.000Z", "endsAt": "2026-10-13T05:30:00.000Z", "capacity": 6, "bookedCount": 1, "remaining": 5, "isAvailable": true }
   ]
@@ -179,7 +188,7 @@ Collection times for today and the next few days (full slots included, so apps c
 
 ## Addresses 🔒
 
-Fields: `label` (e.g. "Home"), `recipientName`, `phone`, `line1`, `line2` (optional), `city`, `postcode`,
+Fields: `label` (e.g. "Home"), `recipientName`, `phone`, `line1`, `line2` (optional), `city`, `postcode` (the PIN code),
 `instructions` (optional), `isDefault`.
 
 | Method & path | What it does |
@@ -192,10 +201,10 @@ Fields: `label` (e.g. "Home"), `recipientName`, `phone`, `line1`, `line2` (optio
 ```json
 {
   "id": 1, "label": "Home", "recipientName": "Alex Shopper", "phone": "+91 98765 01234",
-  "line1": "24 Elm Street", "line2": null, "city": "Springfield", "postcode": "10001",
-  "instructions": "Blue door — please ring the bell", "isDefault": true,
+  "line1": "10 Sample Street", "line2": null, "city": "Pernambut", "postcode": "635810",
+  "instructions": "Demo address — please call before delivering", "isDefault": true,
   "deliveryAvailable": true,
-  "deliveryZone": { "id": 1, "name": "Central", "feeCents": 3000, "freeDeliveryThresholdCents": 50000, "minOrderCents": 0 }
+  "deliveryZone": { "id": 1, "name": "Pernambut", "feeCents": 3000, "freeDeliveryThresholdCents": 50000, "minOrderCents": 0 }
 }
 ```
 
@@ -212,22 +221,22 @@ Delivery to a saved address:
 { "items": [ { "productId": 1, "quantity": 2 }, { "productId": 15, "quantity": 1 } ],
   "fulfillment": { "type": "delivery", "addressId": 1 } }
 ```
-Or a one-off address: `"fulfillment": { "type": "delivery", "address": { "recipientName": "…", "phone": "…", "line1": "…", "city": "…", "postcode": "10001" } }`
+Or a one-off address: `"fulfillment": { "type": "delivery", "address": { "recipientName": "…", "phone": "…", "line1": "…", "city": "…", "postcode": "635810" } }`
 Or pickup: `"fulfillment": { "type": "pickup", "pickupSlotId": 2 }`
 
 ```json
 {
   "items": [
-    { "productId": 1, "name": "Bananas", "unitLabel": "6 pcs", "unitPriceCents": 4500, "quantity": 2, "lineTotalCents": 9000, "availableQuantity": 79, "isAvailable": true, "imageUrl": "/uploads/products/sample-fv-001.jpg", "icon": "🍌", "categoryIcon": "🥦" },
-    { "productId": 15, "name": "Full Cream Milk", "unitLabel": "1 L", "unitPriceCents": 6800, "quantity": 1, "lineTotalCents": 6800, "availableQuantity": 58, "isAvailable": true, "imageUrl": "/uploads/products/sample-de-001.jpg", "icon": "🥛", "categoryIcon": "🧀" }
+    { "productId": 1, "name": "Bananas", "unitLabel": "6 pcs", "unitPriceCents": 4500, "quantity": 2, "lineTotalCents": 9000, "availableQuantity": 79, "isAvailable": true, "imageUrl": "/sample-images/FV-001.jpg", "icon": "🍌", "categoryIcon": "🥦" },
+    { "productId": 15, "name": "Full Cream Milk", "unitLabel": "1 L", "unitPriceCents": 6800, "quantity": 1, "lineTotalCents": 6800, "availableQuantity": 58, "isAvailable": true, "imageUrl": "/sample-images/DE-001.jpg", "icon": "🥛", "categoryIcon": "🧀" }
   ],
   "subtotalCents": 15800,
   "deliveryFeeCents": 3000,
   "totalCents": 18800,
   "fulfillment": {
     "type": "delivery",
-    "postcode": "10001",
-    "zone": { "id": 1, "name": "Central", "feeCents": 3000, "freeDeliveryThresholdCents": 50000, "minOrderCents": 0 },
+    "postcode": "635810",
+    "zone": { "id": 1, "name": "Pernambut", "feeCents": 3000, "freeDeliveryThresholdCents": 50000, "minOrderCents": 0 },
     "amountToFreeDeliveryCents": 34200
   },
   "issues": [],
@@ -262,7 +271,7 @@ Same body as the quote, plus:
   "created": true,
   "order": {
     "id": 5,
-    "orderNumber": "FW-00005",
+    "orderNumber": "MS-00005",
     "status": "pending",
     "statusLabel": "Pending",
     "fulfillmentType": "pickup",
@@ -276,7 +285,7 @@ Same body as the quote, plus:
     "cancelledBy": null,
     "createdAt": "2026-10-13T02:52:10.120Z",
     "updatedAt": "2026-10-13T02:52:10.120Z",
-    "items": [ { "id": 9, "productId": 1, "productName": "Bananas", "unitLabel": "6 pcs", "unitPriceCents": 4500, "quantity": 2, "lineTotalCents": 9000, "imageUrl": "/uploads/products/sample-fv-001.jpg", "icon": "🍌" } ],
+    "items": [ { "id": 9, "productId": 1, "productName": "Bananas", "unitLabel": "6 pcs", "unitPriceCents": 4500, "quantity": 2, "lineTotalCents": 9000, "imageUrl": "/sample-images/FV-001.jpg", "icon": "🍌" } ],
     "delivery": null,
     "pickup": { "slotId": 2, "startsAt": "2026-10-13T04:30:00.000Z", "endsAt": "2026-10-13T05:30:00.000Z" },
     "history": [ { "status": "pending", "note": "Order placed", "createdAt": "2026-10-13T02:52:10.120Z", "changedByRole": "customer" } ],
@@ -295,9 +304,9 @@ Your order history, newest first.
 ```json
 {
   "items": [
-    { "id": 4, "orderNumber": "FW-00004", "status": "completed", "statusLabel": "Completed", "fulfillmentType": "delivery",
+    { "id": 4, "orderNumber": "MS-00004", "status": "completed", "statusLabel": "Completed", "fulfillmentType": "delivery",
       "paymentMethod": "pay_on_fulfillment", "paymentStatus": "paid", "totalCents": 91700, "itemCount": 4,
-      "itemPreview": "Gala Apples, Free-Range Eggs, Toilet Tissue", "deliveryPostcode": "10001",
+      "itemPreview": "Gala Apples, Free-Range Eggs, Toilet Tissue", "deliveryPostcode": "635810",
       "pickupStartsAt": null, "pickupEndsAt": null, "createdAt": "2026-10-13T03:00:25.563Z" }
   ],
   "total": 4, "page": 1, "pageSize": 20
@@ -337,7 +346,7 @@ All of these need a **staff** token. Customers get `403 FORBIDDEN`.
 | `POST /api/staff/orders/:id/cancel` | Cancel with a **required** reason: `{ "reason": "Items out of stock" }` |
 
 List parameters: `status` (`open` = not completed/cancelled, or one status), `fulfillmentType` (`delivery`/`pickup`),
-`search` (order number like `FW-00012`, customer name or email), `from`/`to` (`YYYY-MM-DD`, store time zone), `page`, `pageSize`.
+`search` (order number like `MS-00012`, customer name or email), `from`/`to` (`YYYY-MM-DD`, store time zone), `page`, `pageSize`.
 
 Allowed status changes:
 `pending → preparing → ready_for_pickup` (pickup orders) **or** `out_for_delivery` (delivery orders) `→ completed`.
@@ -347,7 +356,7 @@ Anything else → `409 INVALID_STATUS_CHANGE` with `details.allowedNextStatuses`
 
 | Method & path | What it does |
 | --- | --- |
-| `GET /api/staff/products` | All products, including inactive. Parameters: `search`, `categoryId`, `status` (`all`/`active`/`inactive`), `lowStock=true`, `sort` (`name`, `price_asc`, `price_desc`, `newest`, `stock_asc`), `page`, `pageSize` (max 200) |
+| `GET /api/staff/products` | All products, including inactive. Parameters: `search`, `categoryId`, `status` (`all`/`active`/`inactive`), `lowStock=true`, `missingPhoto=true` (products without a photo), `sort` (`name`, `price_asc`, `price_desc`, `newest`, `stock_asc`), `page`, `pageSize` (max 200) |
 | `GET /api/staff/products/:id` | One product |
 | `POST /api/staff/products` | Create (`201`) |
 | `PATCH /api/staff/products/:id` | Change only the fields you send. **Deactivate** with `{ "isActive": false }` |
@@ -357,7 +366,7 @@ Anything else → `409 INVALID_STATUS_CHANGE` with `details.allowedNextStatuses`
 
 Create body:
 ```json
-{ "name": "Oat Milk", "categoryId": 3, "priceCents": 24900, "unitLabel": "1 L", "sku": "DE-006",
+{ "name": "Oat Milk", "brand": "Example Brand", "categoryId": 3, "priceCents": 24900, "unitLabel": "1 L", "sku": "DE-099",
   "description": "Creamy oat drink.", "icon": "🥛", "isActive": true, "stockQuantity": 24, "lowStockThreshold": 5 }
 ```
 Response (`{ "product": … }`) includes staff-only fields: `sku`, `isActive`, `categoryIsActive`,
@@ -381,15 +390,19 @@ curl -X POST http://localhost:4000/api/staff/products/1/image -H "Authorization:
 | Method & path | Body |
 | --- | --- |
 | `GET /api/staff/delivery-zones` | |
-| `POST /api/staff/delivery-zones` | `{ "name": "Koramangala", "postcodePrefixes": ["560034", "560095"], "feeCents": 3000, "freeDeliveryThresholdCents": 50000, "minOrderCents": 0, "isActive": true }` |
+| `POST /api/staff/delivery-zones` | `{ "name": "Pernambut", "postcodePrefixes": ["635810"], "feeCents": 3000, "freeDeliveryThresholdCents": 50000, "minOrderCents": 0, "isActive": true }` |
 | `PATCH /api/staff/delivery-zones/:id` | Any of the fields above. Send `"freeDeliveryThresholdCents": null` to remove free delivery |
 
-Prefixes are stored in upper case without spaces (`"sw1 a"` → `"SW1A"`). A postcode matches the zone with the
+PIN codes and prefixes are stored without spaces (`"635 810"` → `"635810"`). A PIN code matches the zone with the
 **longest** matching prefix.
 
 ---
 
 ## Product images
 
-Uploaded and sample photos are served as static files:
-`GET /uploads/products/<file>` (e.g. `http://localhost:4000/uploads/products/sample-fv-001.jpg`).
+Photos are served as files:
+
+- Sample photos that ship with the code: `GET /sample-images/<SKU>.jpg` (e.g. `http://localhost:4000/sample-images/FV-001.jpg`).
+  Credits, and the list of sample products that still need a photo, are in `backend/seed-images/CREDITS.md`.
+- Photos uploaded by staff with `IMAGE_STORAGE=disk`: `GET /uploads/products/<file>`.
+- Photos uploaded by staff with `IMAGE_STORAGE=database`: `GET /api/images/<id>`.

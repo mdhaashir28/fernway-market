@@ -19,9 +19,9 @@ export const addressFieldsSchema = z.object({
   postcode: z
     .string()
     .trim()
-    .min(3, 'Please enter a valid postcode')
-    .max(12, 'Please enter a valid postcode')
-    .regex(/^[A-Za-z0-9 -]+$/, 'Postcodes can only contain letters, numbers, spaces and dashes'),
+    .min(3, 'Please enter a valid PIN code')
+    .max(12, 'Please enter a valid PIN code')
+    .regex(/^[A-Za-z0-9 -]+$/, 'PIN codes can only contain letters, numbers, spaces and dashes'),
   instructions: optionalText(300),
 });
 export type AddressFields = z.output<typeof addressFieldsSchema>;

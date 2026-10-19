@@ -1,4 +1,4 @@
-// Talks to the Fernway API. Adds the login token and turns errors into
+// Talks to the store API. Adds the login token and turns errors into
 // ApiError objects with a message that's safe to show to customers.
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';

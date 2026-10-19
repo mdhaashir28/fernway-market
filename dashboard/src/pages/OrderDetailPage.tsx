@@ -204,6 +204,11 @@ export function OrderDetailPage() {
                 <li>
                   <Store size={16} aria-hidden /> {store.address}
                 </li>
+                {store.phones.map((phone) => (
+                  <li key={phone.tel}>
+                    <Phone size={16} aria-hidden /> <a href={`tel:${phone.tel}`}>{phone.display}</a>
+                  </li>
+                ))}
               </ul>
             )}
           </section>

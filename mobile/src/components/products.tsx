@@ -14,7 +14,11 @@ import { colors, radius, shadow, spacing } from '@/theme';
 // Soft background colours for products without a photo (picked by product id).
 const TINTS = ['#E3F1E8', '#FDF0D9', '#E3EEFD', '#EFE8FC', '#DFF4F8', '#FDE8E7', '#F1F3E4'];
 
-/** The product photo, or its emoji on a soft coloured tile when there's no photo yet. */
+/**
+ * The product photo, or — when there's no photo yet — a clearly labelled
+ * placeholder: the product's emoji on a soft coloured tile with
+ * "Photo coming soon" (the label is left off small thumbnails).
+ */
 export function ProductImage({
   product,
   size,
@@ -28,6 +32,7 @@ export function ProductImage({
   const id = product.id ?? product.productId ?? 0;
   const dimension = size === '100%' ? { width: '100%' as const, aspectRatio: 1 } : { width: size, height: size };
   const emojiSize = typeof size === 'number' ? size * 0.5 : 64;
+  const showLabel = size === '100%' || size >= 120;
   return (
     <View
       style={[styles.imageBox, dimension, { borderRadius: rounded, backgroundColor: TINTS[id % TINTS.length] }]}
@@ -37,7 +42,15 @@ export function ProductImage({
       {src ? (
         <Image source={{ uri: src }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
       ) : (
-        <Text style={{ fontSize: emojiSize }}>{product.icon || product.categoryIcon || '🛒'}</Text>
+        <>
+          <Text style={{ fontSize: emojiSize }}>{product.icon || product.categoryIcon || '🛒'}</Text>
+          {showLabel && (
+            <View style={styles.placeholderLabel}>
+              <Ionicons name="camera-outline" size={13} color={colors.textMuted} />
+              <Text style={styles.placeholderText}>Photo coming soon</Text>
+            </View>
+          )}
+        </>
       )}
     </View>
   );
@@ -206,6 +219,18 @@ export function ProductGrid({
 
 const styles = StyleSheet.create({
   imageBox: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  placeholderLabel: {
+    position: 'absolute',
+    bottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  placeholderText: { fontSize: 11, fontWeight: '700', color: colors.textMuted },
 
   card: {
     backgroundColor: colors.surface,

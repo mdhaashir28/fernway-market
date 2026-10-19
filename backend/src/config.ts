@@ -21,9 +21,10 @@ const schema = z
     JWT_EXPIRES_IN: z.string().default('7d'),
     CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:8081'),
 
-    STORE_NAME: z.string().min(1).default('Fernway Market'),
-    STORE_ADDRESS: z.string().default('12 Market Street, Springfield'),
-    STORE_PHONE: z.string().default(''),
+    STORE_NAME: z.string().min(1).default('Meeranji Supermarket'),
+    STORE_ADDRESS: z.string().default('#78/153 Bazaar Street, Pernambut - 635 810, Vellore District, Tamil Nadu'),
+    // One or more numbers, separated by commas.
+    STORE_PHONE: z.string().default('9789562928, 9003071616'),
     CURRENCY: z.string().length(3, 'must be a 3-letter currency code such as INR, USD or GBP').toUpperCase().default('INR'),
     STORE_TIMEZONE: z.string().refine(isValidTimeZone, 'must be a valid IANA time zone such as Europe/London').default('UTC'),
 

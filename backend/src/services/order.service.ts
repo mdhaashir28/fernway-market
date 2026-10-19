@@ -46,7 +46,8 @@ export function nextStatuses(status: OrderStatus, type: FulfillmentType): OrderS
 
 const isOpen = (status: OrderStatus) => status !== 'completed' && status !== 'cancelled';
 
-export const orderNumber = (id: number) => `FW-${String(id).padStart(5, '0')}`;
+// Shown to customers, e.g. MS-00012 (MS = Meeranji Supermarket).
+export const orderNumber = (id: number) => `MS-${String(id).padStart(5, '0')}`;
 
 // --------------------------------------------------------------------------
 // Creating an order

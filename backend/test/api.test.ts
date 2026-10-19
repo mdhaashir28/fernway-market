@@ -31,6 +31,7 @@ Object.assign(process.env, {
   SEED_STAFF_PASSWORD: 'staff-password-123',
   SEED_CUSTOMER_EMAIL: 'customer@test.local',
   SEED_CUSTOMER_PASSWORD: 'customer-password-123',
+  STORE_PHONE: '9789562928, 9003071616',
 });
 
 let server: Server;
@@ -168,7 +169,17 @@ describe('accounts', () => {
 
 // ---------------------------------------------------------------------------
 describe('catalogue', () => {
+  it('shares the store details, with every phone number ready to call', async () => {
+    const store = await api('GET', '/api/store');
+    assert.deepEqual(store.body.phones, [
+      { display: '+91 97895 62928', tel: '+919789562928' },
+      { display: '+91 90030 71616', tel: '+919003071616' },
+    ]);
+    assert.equal(store.body.phone, '+91 97895 62928');
+  });
+
   it('searches products and hides deactivated ones from customers', async () => {
+    // Products named "…milk…" come before ones that only mention milk in the description.
     const milk = await api('GET', '/api/products?search=milk');
     assert.equal(milk.body.items[0].name, 'Full Cream Milk');
 
@@ -180,16 +191,55 @@ describe('catalogue', () => {
     assert.equal((await api('GET', `/api/products/${pumpkinId}`)).status, 404);
   });
 
+  it('finds products by brand, and ignores accents', async () => {
+    const surf = await api('GET', '/api/products?search=surf%20excel');
+    assert.ok(surf.body.items.length >= 2);
+    for (const product of surf.body.items) assert.equal(product.brand, 'Surf Excel');
+
+    // "nescafe" (typed without the accent) finds Nescafé.
+    const coffee = await api('GET', '/api/products?search=nescafe');
+    assert.ok(coffee.body.items.some((p: { brand: string }) => p.brand === 'Nescafé'));
+
+    // Tamil names work too.
+    const paruppu = await api('GET', '/api/products?search=paruppu');
+    assert.ok(paruppu.body.items.some((p: { name: string }) => p.name.startsWith('Toor Dal')));
+  });
+
   it('filters by category, stock and price', async () => {
-    const res = await api('GET', '/api/products?categoryId=1&inStock=true&maxPriceCents=5000&sort=price_asc');
+    const categories = (await api('GET', '/api/categories')).body.items;
+    const fruitVeg = categories.find((c: { slug: string }) => c.slug === 'fruit-veg').id;
+    const res = await api('GET', `/api/products?categoryId=${fruitVeg}&inStock=true&maxPriceCents=5000&sort=price_asc`);
     assert.ok(res.body.items.length > 0);
     for (const product of res.body.items) {
-      assert.equal(product.categoryId, 1);
+      assert.equal(product.categoryId, fruitVeg);
       assert.ok(product.availableQuantity > 0);
       assert.ok(product.priceCents <= 5000);
     }
     const prices = res.body.items.map((p: { priceCents: number }) => p.priceCents);
     assert.deepEqual(prices, [...prices].sort((a, b) => a - b));
+  });
+
+  it('adds new sample products to an existing database once, and keeps your changes', async () => {
+    const { pool } = await import('../src/db/pool.js');
+    const { syncSampleCatalog } = await import('../src/db/seed.js');
+    const staff = await login('staff@test.local', 'staff-password-123');
+    const count = async () => (await pool.query<{ count: number }>('SELECT count(*) AS count FROM products')).rows[0].count;
+    const before = await count();
+
+    // Like a database from before this catalogue: one sample product missing, no version marker.
+    await pool.query("DELETE FROM products WHERE sku = 'SP-008'");
+    await pool.query('DELETE FROM sample_data_versions');
+    await syncSampleCatalog(() => {});
+    assert.equal(await count(), before, 'the missing sample product was added');
+    const rasam = (await api('GET', '/api/products?search=rasam')).body.items[0];
+    assert.equal(rasam.brand, 'Store packed');
+    assert.equal(rasam.availableQuantity, 30);
+
+    // After that, edits stick: giving it your own SKU does not bring the sample one back.
+    const rasamId = await productIdBySku('SP-008', staff);
+    await api('PATCH', `/api/staff/products/${rasamId}`, { token: staff, body: { sku: 'MY-BARCODE-123' } });
+    await syncSampleCatalog(() => {});
+    assert.equal(await count(), before);
   });
 });
 
@@ -408,17 +458,19 @@ describe('staff catalogue management', () => {
   it('creates, edits and deactivates a product', async () => {
     const created = await api('POST', '/api/staff/products', {
       token: staff,
-      body: { name: 'Oat Milk', categoryId: 3, priceCents: 249, unitLabel: '1 L', stockQuantity: 4, lowStockThreshold: 5 },
+      body: { name: 'Oat Milk', brand: 'Test Dairy', categoryId: 3, priceCents: 249, unitLabel: '1 L', stockQuantity: 4, lowStockThreshold: 5 },
     });
     assert.equal(created.status, 201, JSON.stringify(created.body));
     const id = created.body.product.id;
     assert.equal(created.body.product.isLowStock, true);
+    assert.equal(created.body.product.brand, 'Test Dairy');
 
     const lowStock = await api('GET', '/api/staff/products?lowStock=true', { token: staff });
     assert.ok(lowStock.body.items.some((p: { id: number }) => p.id === id));
 
-    const edited = await api('PATCH', `/api/staff/products/${id}`, { token: staff, body: { priceCents: 199 } });
+    const edited = await api('PATCH', `/api/staff/products/${id}`, { token: staff, body: { priceCents: 199, brand: '' } });
     assert.equal(edited.body.product.priceCents, 199);
+    assert.equal(edited.body.product.brand, null, 'an empty brand is cleared');
     assert.equal(edited.body.product.unitLabel, '1 L', 'fields that were not sent stay the same');
 
     await api('PATCH', `/api/staff/products/${id}`, { token: staff, body: { isActive: false } });
@@ -439,6 +491,9 @@ describe('staff catalogue management', () => {
     });
     const id = created.body.product.id;
     assert.equal(created.body.product.imageUrl, null);
+    const missingPhoto = async () =>
+      (await api('GET', '/api/staff/products?missingPhoto=true&pageSize=200', { token: staff })).body.items.map((p: { id: number }) => p.id);
+    assert.ok((await missingPhoto()).includes(id), 'listed under "missing photo"');
     // A real 1×1 pixel PNG.
     const png = Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -450,6 +505,7 @@ describe('staff catalogue management', () => {
     assert.equal(res.status, 200, JSON.stringify(res.body));
     const imageUrl: string = res.body.product.imageUrl;
     assert.match(imageUrl, /^\/uploads\/products\/.+\.png$/);
+    assert.ok(!(await missingPhoto()).includes(id), 'no longer missing a photo');
 
     const served = await fetch(`${base}${imageUrl}`);
     assert.equal(served.status, 200);

@@ -74,6 +74,13 @@ export default function ProductScreen() {
         ) : null}
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Product details</Text>
+          {product.brand ? <DetailRow label="Brand" value={product.brand} /> : null}
+          <DetailRow label="Pack size" value={product.unitLabel} />
+          <DetailRow label="Category" value={product.categoryName} />
+        </View>
+
+        <View style={styles.section}>
           <View style={styles.infoRow}>
             <Ionicons name="bicycle-outline" size={20} color={colors.primary} />
             <Text style={styles.infoText}>Home delivery or free store pickup</Text>
@@ -114,8 +121,20 @@ export default function ProductScreen() {
   );
 }
 
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
+  detailRow: { flexDirection: 'row', gap: spacing.md },
+  detailLabel: { width: 90, fontSize: 15, color: colors.textMuted },
+  detailValue: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text },
   content: { padding: spacing.lg, paddingBottom: 140, gap: spacing.lg, maxWidth: 640, width: '100%', alignSelf: 'center' },
   titleBlock: { gap: 6 },
   name: { fontSize: font.hero, fontWeight: '800', color: colors.text, lineHeight: 34 },

@@ -13,7 +13,7 @@ import { listUpcomingSlots } from '../services/pickup.service.js';
 export const checkoutRouter = Router();
 
 const deliveryCheckQuery = z.object({
-  postcode: z.string().trim().min(2, 'Please enter a postcode').max(12),
+  postcode: z.string().trim().min(2, 'Please enter a PIN code').max(12),
   subtotalCents: z.coerce.number().int().min(0).optional(),
 });
 

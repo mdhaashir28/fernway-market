@@ -1,4 +1,4 @@
-# How Fernway Market fits together
+# How the Meeranji Supermarket app fits together
 
 ## The big picture
 
@@ -107,7 +107,7 @@ paid immediately, and **refunded** (in name only, it's a demo) if cancelled.
 
 ## Delivery area & pickup slots
 
-- **Delivery zones** (`delivery_zones`) list postcode **prefixes**. A postcode belongs to the zone with the
+- **Delivery zones** (`delivery_zones`) list PIN codes or PIN-code **prefixes**. A PIN code belongs to the zone with the
   longest matching prefix. Each zone has a fee, an optional free-delivery threshold and a minimum order.
   Staff edit zones in the dashboard.
 - **Pickup slots** (`pickup_slots`) are created automatically for today plus `PICKUP_DAYS_AHEAD` days, using the
@@ -129,8 +129,23 @@ delivery_zones (used by addresses at checkout; copied into order_deliveries)
 The full schema with comments is in [`backend/db/migrations/001_initial_schema.sql`](../backend/db/migrations/001_initial_schema.sql).
 Money is stored as whole **paise** (integers) to avoid rounding errors: `4550` = ₹45.50.
 
-**Changing the schema later:** add a new file such as `002_add_brands.sql` to `backend/db/migrations/`.
+Later changes: `002_product_images.sql` (photos stored in the database) and `003_product_brand.sql` (the
+`products.brand` column, plus the `sample_data_versions` table described below).
+
+**Changing the schema later:** add a new file such as `004_add_offers.sql` to `backend/db/migrations/`.
 It runs automatically (once) the next time the API starts, or with `npm run db:migrate`.
+
+## Store details and sample data
+
+- **Store name, address and phone numbers** come from the `STORE_NAME`, `STORE_ADDRESS` and `STORE_PHONE` settings.
+  `GET /api/store` sends them to both apps; `STORE_PHONE` may list several numbers, each returned with a display
+  form and a `tel:` form for tap-to-call links.
+- **The sample catalogue** lives in [`backend/src/db/seed-data.ts`](../backend/src/db/seed-data.ts). It is loaded
+  into an empty database on first start (development, or `LOAD_SAMPLE_DATA=true`). When the catalogue grows, its
+  `SAMPLE_DATA_VERSION` changes, and the next start adds the new products to an existing database **once**, recorded
+  in `sample_data_versions`, so products staff later edit, hide or re-SKU are never brought back.
+- **Sample photos** are files in `backend/seed-images/products/<SKU>.jpg`, served at `/sample-images/…`. Products
+  without one show a labelled "Photo coming soon" placeholder until staff upload a photo.
 
 ## Security summary
 

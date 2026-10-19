@@ -50,11 +50,11 @@ services:
       - key: SEED_CUSTOMER_PASSWORD
         generateValue: true
       - key: STORE_NAME
-        value: Fernway Market
+        value: Meeranji Supermarket
       - key: STORE_ADDRESS
-        value: "12 Market Street, Springfield"
+        value: "#78/153 Bazaar Street, Pernambut - 635 810, Vellore District, Tamil Nadu"
       - key: STORE_PHONE
-        value: "+91 98765 43210"
+        value: "9789562928, 9003071616"
       - key: CURRENCY
         value: INR
       - key: STORE_TIMEZONE

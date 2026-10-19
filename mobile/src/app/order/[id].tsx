@@ -7,6 +7,7 @@ import { api } from '@/api/client';
 import type { Order, OrderStatus } from '@/api/types';
 import { ProductImage } from '@/components/products';
 import { EmptyState, ErrorView, LoadingView } from '@/components/states';
+import { CallButton, StoreContact, storePhones } from '@/components/StoreContact';
 import { Badge, Banner, Button, Card, StatusBadge } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
@@ -112,7 +113,7 @@ export default function OrderScreen() {
         {o.pickup && (
           <>
             <Text style={styles.bodyStrong}>{formatSlot(o.pickup.startsAt, o.pickup.endsAt)}</Text>
-            <Text style={styles.body}>{store?.address}</Text>
+            {store && <StoreContact store={store} />}
             <Text style={styles.muted}>Show your order number {o.orderNumber} at the counter.</Text>
           </>
         )}
@@ -156,9 +157,12 @@ export default function OrderScreen() {
         <Button title="Cancel order" variant="danger" icon="close-circle-outline" loading={cancelling} onPress={cancel} />
       )}
       {!o.canCancel && o.status !== 'cancelled' && o.status !== 'completed' && (
-        <Text style={[styles.muted, { textAlign: 'center' }]}>
-          Need to change something? Call us{store?.phone ? ` on ${store.phone}` : ''}.
-        </Text>
+        <View style={{ gap: spacing.sm }}>
+          <Text style={[styles.muted, { textAlign: 'center' }]}>Need to change something? Call us and quote {o.orderNumber}.</Text>
+          {storePhones(store).map((phone) => (
+            <CallButton key={phone.tel} phone={phone} />
+          ))}
+        </View>
       )}
     </ScrollView>
   );

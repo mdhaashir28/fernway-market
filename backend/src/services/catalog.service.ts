@@ -8,6 +8,7 @@ export type ProductSort = 'relevance' | 'name' | 'price_asc' | 'price_desc' | 'n
 export interface ProductRow {
   id: number;
   name: string;
+  brand: string | null;
   description: string;
   priceCents: number;
   unitLabel: string;
@@ -26,7 +27,7 @@ export interface ProductRow {
 }
 
 const PRODUCT_SELECT = `
-  SELECT p.id, p.name, p.description, p.price_cents AS "priceCents", p.unit_label AS "unitLabel",
+  SELECT p.id, p.name, p.brand, p.description, p.price_cents AS "priceCents", p.unit_label AS "unitLabel",
          p.image_url AS "imageUrl", p.icon, p.sku, p.is_active AS "isActive",
          p.category_id AS "categoryId", c.name AS "categoryName", c.icon AS "categoryIcon",
          c.is_active AS "categoryIsActive",
@@ -48,6 +49,7 @@ export function toPublicProduct(row: ProductRow) {
   return {
     id: row.id,
     name: row.name,
+    brand: row.brand,
     description: row.description,
     priceCents: row.priceCents,
     unitLabel: row.unitLabel,
@@ -67,6 +69,7 @@ export function toStaffProduct(row: ProductRow) {
     id: row.id,
     sku: row.sku,
     name: row.name,
+    brand: row.brand,
     description: row.description,
     priceCents: row.priceCents,
     unitLabel: row.unitLabel,
@@ -94,12 +97,20 @@ export interface ProductFilters {
   minPriceCents?: number;
   maxPriceCents?: number;
   lowStock?: boolean;
+  /** Only products without a photo (staff). */
+  missingPhoto?: boolean;
   /** Customers only ever see "active"; staff can choose. */
   status: 'active' | 'inactive' | 'all';
   sort?: ProductSort;
   page: number;
   pageSize: number;
 }
+
+// Accented letters → plain ones, so "nescafe" finds "Nescafé" (and the other way round).
+const ACCENTED = 'ÁÀÂÄÃáàâäãÉÈÊËéèêëÍÌÎÏíìîïÓÒÔÖÕóòôöõÚÙÛÜúùûüÇçÑñ';
+const PLAIN = 'AAAAAaaaaaEEEEeeeeIIIIiiiiOOOOOoooooUUUUuuuuCcNn';
+const fold = (column: string) => `translate(${column}, '${ACCENTED}', '${PLAIN}')`;
+const foldText = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '');
 
 export async function findProducts(db: Db, filters: ProductFilters) {
   const where: string[] = [];
@@ -112,25 +123,30 @@ export async function findProducts(db: Db, filters: ProductFilters) {
   if (filters.status === 'active') where.push('p.is_active AND c.is_active');
   if (filters.status === 'inactive') where.push('NOT (p.is_active AND c.is_active)');
 
+  // Searches name, brand, description, category and SKU, ignoring accents.
   // Escape % and _ so they are matched literally.
-  const escapedSearch = filters.search ? filters.search.replace(/[\\%_]/g, '\\$&') : null;
+  const escapedSearch = filters.search ? foldText(filters.search).replace(/[\\%_]/g, '\\$&') : null;
+  let nameOrBrandMatches = '';
   if (escapedSearch) {
     const term = param(`%${escapedSearch}%`);
-    where.push(`(p.name ILIKE ${term} OR p.description ILIKE ${term} OR c.name ILIKE ${term} OR p.sku ILIKE ${term})`);
+    nameOrBrandMatches = `(${fold('p.name')} ILIKE ${term} OR ${fold('p.brand')} ILIKE ${term})`;
+    where.push(`(${nameOrBrandMatches} OR ${fold('p.description')} ILIKE ${term} OR ${fold('c.name')} ILIKE ${term} OR p.sku ILIKE ${term})`);
   }
   if (filters.categoryId) where.push(`p.category_id = ${param(filters.categoryId)}`);
   if (filters.ids?.length) where.push(`p.id = ANY(${param(filters.ids)}::int[])`);
   if (filters.inStock) where.push('i.quantity > 0');
   if (filters.lowStock) where.push('i.quantity <= i.low_stock_threshold');
+  if (filters.missingPhoto) where.push('p.image_url IS NULL');
   if (filters.minPriceCents != null) where.push(`p.price_cents >= ${param(filters.minPriceCents)}`);
   if (filters.maxPriceCents != null) where.push(`p.price_cents <= ${param(filters.maxPriceCents)}`);
 
   let orderBy: string;
   switch (filters.sort ?? (escapedSearch ? 'relevance' : 'name')) {
     case 'relevance':
-      // Names that START with the search text come first, then other matches.
+      // Names that START with the search text come first, then other name or
+      // brand matches, then matches in the description or category.
       orderBy = escapedSearch
-        ? `(CASE WHEN p.name ILIKE ${param(`${escapedSearch}%`)} THEN 0 ELSE 1 END), lower(p.name)`
+        ? `(CASE WHEN ${fold('p.name')} ILIKE ${param(`${escapedSearch}%`)} THEN 0 WHEN ${nameOrBrandMatches} THEN 1 ELSE 2 END), lower(p.name)`
         : 'lower(p.name)';
       break;
     case 'price_asc':

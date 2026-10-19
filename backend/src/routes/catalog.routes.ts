@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { pool } from '../db/pool.js';
 import { notFound } from '../lib/errors.js';
+import { parsePhoneList } from '../lib/phone.js';
 import { idParam, parse, queryBoolean } from '../lib/validation.js';
 import { findProducts, getProductRow, toPublicProduct } from '../services/catalog.service.js';
 import { listZones } from '../services/delivery.service.js';
@@ -12,10 +13,12 @@ export const catalogRouter = Router();
 
 catalogRouter.get('/store', async (_req, res) => {
   const zones = await listZones(pool, { activeOnly: true });
+  const phones = parsePhoneList(config.STORE_PHONE);
   res.json({
     name: config.STORE_NAME,
     address: config.STORE_ADDRESS,
-    phone: config.STORE_PHONE,
+    phone: phones[0]?.display ?? '', // the first number (kept for older app versions)
+    phones,
     currency: config.CURRENCY,
     timezone: config.STORE_TIMEZONE,
     pickup: {

@@ -10,7 +10,14 @@ interface StoreContextValue {
   slot: (startIso: string, endIso: string) => string
 }
 
-const FALLBACK: StoreInfo = { name: 'Fernway Market', address: '', phone: '', currency: 'INR', timezone: 'Asia/Kolkata' }
+const FALLBACK: StoreInfo = {
+  name: 'Meeranji Supermarket',
+  address: '',
+  phone: '',
+  phones: [],
+  currency: 'INR',
+  timezone: 'Asia/Kolkata',
+}
 
 const StoreContext = createContext<StoreContextValue | null>(null)
 
@@ -21,7 +28,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     api
       .get<StoreInfo>('/api/store')
-      .then(setStore)
+      .then((info) => setStore({ ...info, phones: info.phones ?? [] }))
       .catch(() => {})
   }, [])
 
