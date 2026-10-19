@@ -10,13 +10,13 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://fernway-market.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://meeranji-api.vercel.app"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://fernway-market.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://meeranji-api.vercel.app"
       }
     }
   },

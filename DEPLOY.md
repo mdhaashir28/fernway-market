@@ -101,8 +101,15 @@ GitHub repository**, each with a different **Root Directory**:
 | Vercel project | Root Directory | Environment variables to add |
 | --- | --- | --- |
 | API | `backend` | `DATABASE_URL` (added for you when you connect Neon: Project → **Storage** → **Neon**), `JWT_SECRET` (a long random string), `IMAGE_STORAGE=database`, `CORS_ORIGINS` (the dashboard and customer-app addresses, comma-separated), and for a demo `LOAD_SAMPLE_DATA=true` + `SEED_STAFF_EMAIL`, `SEED_STAFF_PASSWORD`, `SEED_CUSTOMER_EMAIL`, `SEED_CUSTOMER_PASSWORD`. Store details: `STORE_NAME=Meeranji Supermarket`, `STORE_ADDRESS=#78/153 Bazaar Street, Pernambut - 635 810, Vellore District, Tamil Nadu` (no quotes needed on Vercel), `STORE_PHONE=9789562928, 9003071616`. Optional: `CURRENCY=INR`, `STORE_TIMEZONE=Asia/Kolkata` |
-| Staff dashboard | `dashboard` | `VITE_API_URL` = the API's address, e.g. `https://your-api.vercel.app` |
+| Staff dashboard | `dashboard` | `VITE_API_URL` = the API's address, e.g. `https://meeranji-api.vercel.app` |
 | Customer app (web) | `mobile` | `EXPO_PUBLIC_API_URL` = the API's address |
+
+**Meeranji Supermarket's live addresses:** customer app https://meeranji-supermarket.vercel.app, staff dashboard
+https://meeranji-staff.vercel.app, API https://meeranji-api.vercel.app. They were added in each project under
+**Settings → Domains** (free `*.vercel.app` names). The original `fernway-shop` / `fernway-dashboard` addresses forward
+to the new ones; the original API address `fernway-market.vercel.app` still works for older phone-app builds.
+To use your own domain later, add it in the same place and follow Vercel's DNS instructions, then update
+`CORS_ORIGINS`, `VITE_API_URL` and `EXPO_PUBLIC_API_URL`.
 
 How it works (already set up in the code):
 - `backend/server.js` is the API's Vercel entry point. It serves the code compiled by `npm run build`, so
@@ -122,9 +129,9 @@ How it works (already set up in the code):
 ## Step 3 — The customer app
 
 ### Quick option: use the live API from Expo Go
-Create `mobile/.env` containing your API's address (Render: `https://fernway-api.onrender.com`, Vercel: `https://fernway-market.vercel.app`):
+Create `mobile/.env` containing your API's address (Render: `https://fernway-api.onrender.com`, Vercel: `https://meeranji-api.vercel.app`):
 ```
-EXPO_PUBLIC_API_URL=https://fernway-market.vercel.app
+EXPO_PUBLIC_API_URL=https://meeranji-api.vercel.app
 ```
 Then run `npm run mobile` and scan the QR code. The app now talks to your online store, from any network.
 
