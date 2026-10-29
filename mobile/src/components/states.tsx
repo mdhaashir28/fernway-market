@@ -2,40 +2,44 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps, ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useT } from '@/i18n';
+import { useErrorText } from '@/i18n/errors';
 import { colors, font, spacing } from '@/theme';
 import { Button } from './ui';
 
-export function LoadingView({ message = 'Loading…' }: { message?: string }) {
+export function LoadingView({ message }: { message?: string }) {
+  const { t } = useT();
+  const text = message ?? t('Loading…');
   return (
-    <View style={styles.center} accessibilityRole="progressbar" accessibilityLabel={message}>
+    <View style={styles.center} accessibilityRole="progressbar" accessibilityLabel={text}>
       <ActivityIndicator size="large" color={colors.primary} />
-      <Text style={styles.muted}>{message}</Text>
+      <Text style={styles.muted}>{text}</Text>
     </View>
   );
 }
 
 export function ErrorView({ error, onRetry }: { error: Error; onRetry?: () => void }) {
+  const { t } = useT();
+  const errorText = useErrorText();
   return (
     <View style={styles.center} accessibilityRole="alert">
       <View style={[styles.iconCircle, { backgroundColor: colors.dangerSoft }]}>
         <Ionicons name="cloud-offline-outline" size={34} color={colors.danger} />
       </View>
-      <Text style={styles.title}>Something went wrong</Text>
-      <Text style={styles.message}>{error.message}</Text>
-      {onRetry && <Button title="Try again" icon="refresh" onPress={onRetry} variant="secondary" style={styles.action} />}
+      <Text style={styles.title}>{t('Something went wrong')}</Text>
+      <Text style={styles.message}>{errorText(error)}</Text>
+      {onRetry && <Button title={t('Try again')} icon="refresh" onPress={onRetry} variant="secondary" style={styles.action} />}
     </View>
   );
 }
 
 export function EmptyState({
   icon,
-  emoji,
   title,
   message,
   action,
 }: {
   icon?: ComponentProps<typeof Ionicons>['name'];
-  emoji?: string;
   title: string;
   message?: string;
   action?: ReactNode;
@@ -43,7 +47,7 @@ export function EmptyState({
   return (
     <View style={styles.center}>
       <View style={styles.iconCircle}>
-        {emoji ? <Text style={{ fontSize: 34 }}>{emoji}</Text> : <Ionicons name={icon ?? 'basket-outline'} size={34} color={colors.primary} />}
+        <Ionicons name={icon ?? 'basket-outline'} size={34} color={colors.primary} />
       </View>
       <Text style={styles.title}>{title}</Text>
       {message && <Text style={styles.message}>{message}</Text>}
@@ -71,7 +75,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   title: { fontSize: font.title - 2, fontWeight: '800', color: colors.text, textAlign: 'center' },
-  message: { fontSize: font.body, color: colors.textMuted, textAlign: 'center', lineHeight: 23, maxWidth: 340 },
+  message: { fontSize: font.body, color: colors.textMuted, textAlign: 'center', lineHeight: 24, maxWidth: 340 },
   muted: { fontSize: font.body, color: colors.textMuted },
   action: { marginTop: spacing.sm, alignSelf: 'center', minWidth: 200 },
 });

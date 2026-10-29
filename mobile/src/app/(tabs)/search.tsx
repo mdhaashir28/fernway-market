@@ -8,6 +8,7 @@ import { FilterChips, type FilterState } from '@/components/filters';
 import { ProductGrid } from '@/components/products';
 import { EmptyState, ErrorView, LoadingView } from '@/components/states';
 import { Button, Chip } from '@/components/ui';
+import { useT } from '@/i18n';
 import { useApi, useDebounced } from '@/lib/useApi';
 import { useProductSearch } from '@/lib/useProductSearch';
 import { colors, font, radius, spacing } from '@/theme';
@@ -19,6 +20,7 @@ export default function SearchScreen() {
   const [categoryId, setCategoryId] = useState<number | undefined>();
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const search = useDebounced(text.trim());
+  const { t, localName } = useT();
 
   const categories = useApi(() => api.get<{ items: Category[] }>('/api/categories').then((r) => r.items), []);
   const results = useProductSearch({
@@ -44,26 +46,26 @@ export default function SearchScreen() {
         <TextInput
           value={text}
           onChangeText={setText}
-          placeholder="Search products"
+          placeholder={t('Search products')}
           placeholderTextColor="#8A948D"
-          accessibilityLabel="Search products"
+          accessibilityLabel={t('Search products')}
           returnKeyType="search"
           autoCorrect={false}
           style={styles.searchInput}
         />
         {text ? (
-          <Pressable onPress={() => setText('')} accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={10}>
+          <Pressable onPress={() => setText('')} accessibilityRole="button" accessibilityLabel={t('Clear search')} hitSlop={10}>
             <Ionicons name="close-circle" size={22} color={colors.textMuted} />
           </Pressable>
         ) : null}
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} keyboardShouldPersistTaps="handled">
-        <Chip label="All" selected={!categoryId} onPress={() => setCategoryId(undefined)} />
+        <Chip label={t('All')} selected={!categoryId} onPress={() => setCategoryId(undefined)} />
         {categories.data?.map((c) => (
           <Chip
             key={c.id}
-            label={`${c.icon} ${c.name}`}
+            label={localName(c)}
             selected={categoryId === c.id}
             onPress={() => setCategoryId(categoryId === c.id ? undefined : c.id)}
           />
@@ -73,11 +75,11 @@ export default function SearchScreen() {
 
       <View style={styles.countRow}>
         <Text style={styles.count} accessibilityLiveRegion="polite">
-          {results.loading ? 'Searching…' : `${results.total} product${results.total === 1 ? '' : 's'}`}
+          {results.loading ? t('Searching…') : t(results.total === 1 ? '{count} product' : '{count} products', { count: results.total })}
         </Text>
         {hasFilters && (
           <Pressable onPress={clearAll} accessibilityRole="button" hitSlop={8}>
-            <Text style={styles.clear}>Clear all</Text>
+            <Text style={styles.clear}>{t('Clear all')}</Text>
           </Pressable>
         )}
       </View>
@@ -95,15 +97,15 @@ export default function SearchScreen() {
         footer={results.loadingMore ? <ActivityIndicator color={colors.primary} style={{ margin: spacing.lg }} /> : null}
         empty={
           results.loading ? (
-            <LoadingView message="Finding products…" />
+            <LoadingView message={t('Finding products…')} />
           ) : results.error ? (
             <ErrorView error={results.error} onRetry={results.retry} />
           ) : (
             <EmptyState
               icon="search"
-              title={search ? `No results for “${search}”` : 'No products match'}
-              message="Try a different word or remove some filters."
-              action={hasFilters ? <Button title="Clear filters" variant="secondary" onPress={clearAll} /> : undefined}
+              title={search ? t('No results for “{search}”', { search }) : t('No products match')}
+              message={t('Try a different word, a Tamil name, or remove some filters.')}
+              action={hasFilters ? <Button title={t('Clear filters')} variant="secondary" onPress={clearAll} /> : undefined}
             />
           )
         }
@@ -130,5 +132,5 @@ const styles = StyleSheet.create({
   chipRow: { gap: spacing.sm, paddingVertical: spacing.xs },
   countRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xs },
   count: { fontSize: 15, color: colors.textMuted, fontWeight: '600' },
-  clear: { fontSize: 15, color: colors.primary, fontWeight: '700' },
+  clear: { fontSize: 15, color: colors.primary, fontWeight: '700', paddingVertical: 10 },
 });

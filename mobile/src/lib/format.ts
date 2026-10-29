@@ -14,37 +14,23 @@ export function formatMoney(cents: number, currency = 'INR'): string {
   }
 }
 
-export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+export function formatDate(iso: string, locale = 'en-IN'): string {
+  return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export function formatDateTime(iso: string): string {
+export function formatTime(iso: string, locale = 'en-IN'): string {
+  return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+}
+
+export function formatDateTime(iso: string, locale = 'en-IN'): string {
   const date = new Date(iso);
-  return `${date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}, ${formatTime(iso)}`;
+  return `${date.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}, ${formatTime(iso, locale)}`;
 }
 
-export function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-}
-
-/** "Today", "Tomorrow" or "Thu 16 Oct" */
-export function formatDay(iso: string): string {
-  const date = new Date(iso);
-  const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
-  if (date.toDateString() === today.toDateString()) return 'Today';
-  if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
-  return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
-}
-
-/** "Today, 10:00 – 11:00" */
-export function formatSlot(startIso: string, endIso: string): string {
-  return `${formatDay(startIso)}, ${formatTime(startIso)} – ${formatTime(endIso)}`;
-}
-
+/** English status names (translate them with t()). */
 export const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: 'Order placed',
+  awaiting_payment: 'Awaiting payment',
+  confirmed: 'Order confirmed',
   preparing: 'Preparing',
   ready_for_pickup: 'Ready for pickup',
   out_for_delivery: 'Out for delivery',
@@ -52,11 +38,13 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: 'Cancelled',
 };
 
-/** A friendly sentence explaining each status to the customer. */
+/** A friendly sentence explaining each status to the customer (English; translate with t()). */
 export function statusMessage(status: OrderStatus, type: 'delivery' | 'pickup'): string {
   switch (status) {
-    case 'pending':
-      return "We've received your order and will start preparing it soon.";
+    case 'awaiting_payment':
+      return 'Waiting for your UPI payment. Your items are held for you.';
+    case 'confirmed':
+      return "Your order is confirmed. We'll start preparing it soon.";
     case 'preparing':
       return 'Our team is picking and packing your items.';
     case 'ready_for_pickup':

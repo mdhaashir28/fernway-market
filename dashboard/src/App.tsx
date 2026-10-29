@@ -9,11 +9,17 @@ import { CategoriesPage } from './pages/CategoriesPage'
 import { DeliveryZonesPage } from './pages/DeliveryZonesPage'
 import { LoginPage } from './pages/LoginPage'
 import { LowStockPage } from './pages/LowStockPage'
+import { MessagesPage } from './pages/MessagesPage'
+import { OffersPage } from './pages/OffersPage'
 import { OrderDetailPage } from './pages/OrderDetailPage'
 import { OrdersPage } from './pages/OrdersPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { ProductFormPage } from './pages/ProductFormPage'
 import { ProductsPage } from './pages/ProductsPage'
+import { SettingsPage } from './pages/SettingsPage'
+import { StaffUsersPage } from './pages/StaffUsersPage'
+import { StockHistoryPage } from './pages/StockHistoryPage'
+import { SupportPage } from './pages/SupportPage'
 
 /** Only lets logged-in staff through; everyone else goes to the login page. */
 function RequireStaff({ children }: { children: ReactNode }) {
@@ -48,6 +54,12 @@ export default function App() {
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="low-stock" element={<LowStockPage />} />
                 <Route path="delivery-zones" element={<DeliveryZonesPage />} />
+                <Route path="stock-history" element={<StockHistoryPage />} />
+                <Route path="support" element={<SupportPage />} />
+                <Route path="messages" element={<MessagesPage />} />
+                <Route path="offers" element={<OffersPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="staff" element={<StaffUsersPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>

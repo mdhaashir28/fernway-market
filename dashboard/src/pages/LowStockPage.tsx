@@ -25,7 +25,7 @@ export function LowStockPage() {
         ) : !products.data ? (
           <Spinner />
         ) : products.data.items.length === 0 ? (
-          <EmptyState title="Everything is well stocked 🎉" message="No active products are below their alert level." />
+          <EmptyState title="Everything is well stocked" message="No active products are below their alert level." />
         ) : (
           <div className="table-wrap">
             <table className="table">
@@ -63,7 +63,7 @@ function RestockRow({ product, onRestocked }: { product: StaffProduct; onRestock
     }
     setBusy(true)
     try {
-      const result = await api.post<{ product: StaffProduct }>(`/api/staff/products/${product.id}/stock`, { adjustBy: value })
+      const result = await api.post<{ product: StaffProduct }>(`/api/staff/products/${product.id}/stock`, { adjustBy: value, reason: 'delivery_received' })
       toast(`${product.name}: stock is now ${result.product.stockQuantity}`)
       setAmount('')
       onRestocked()
@@ -78,7 +78,7 @@ function RestockRow({ product, onRestocked }: { product: StaffProduct; onRestock
     <tr>
       <td>
         <div className="product-cell">
-          <ProductThumb imageUrl={product.imageUrl} icon={product.icon || product.categoryIcon} />
+          <ProductThumb imageUrl={product.imageUrl} />
           <div>
             <Link to={`/products/${product.id}`} className="strong-link">
               {product.name}

@@ -1,5 +1,6 @@
 // A shared pool of database connections, plus small helpers for transactions.
 import pg from 'pg';
+import { redact } from '../lib/logger.js';
 import { config } from '../config.js';
 
 // COUNT(*) and SUM() return 64-bit integers, which "pg" gives back as strings
@@ -29,7 +30,7 @@ export const pool = new pg.Pool({ connectionString: withExplicitSslMode(config.D
 
 pool.on('error', (err) => {
   // An idle connection dropped (e.g. the database restarted). The pool will reconnect.
-  console.error('Database connection error:', err.message);
+  console.error('Database connection error:', redact(err.message));
 });
 
 /** Anything we can run a query on: the pool itself or a client inside a transaction. */

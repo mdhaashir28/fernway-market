@@ -1,20 +1,23 @@
-# 🛒 Meeranji Supermarket
+# Meeranji Supermarket
 
-**#78/153 Bazaar Street, Pernambut - 635 810, Vellore District, Tamil Nadu** · 📞 97895 62928 · 90030 71616
+**#78/153 Bazaar Street, Pernambut - 635 810, Vellore District, Tamil Nadu** · Phone 97895 62928 · 90030 71616
 
 A complete shopping app for a single supermarket:
 
 | Part | What it is | Built with | Runs at |
 | --- | --- | --- | --- |
-| **Customer app** | Phone app for browsing, cart, checkout (delivery **or** pickup) and order tracking | React Native + Expo + TypeScript | Expo Go on your phone (or a web browser) |
-| **Staff dashboard** | Website for staff: orders, products, stock, categories, delivery zones | React + Vite + TypeScript | http://localhost:5173 |
+| **Customer app** | Phone app in **English and Tamil**: browsing, search, cart with substitution choices, checkout (delivery **or** pickup, UPI **or** pay on delivery), order tracking and updates, shopping lists, order again, help | React Native + Expo + TypeScript | Expo Go on your phone (or a web browser) |
+| **Staff dashboard** | Website for staff and managers: orders, substitutions, payments and refunds, products, stock history, categories, delivery zones, opening hours, offers, customer help, WhatsApp log, staff accounts | React + Vite + TypeScript | http://localhost:5173 |
 | **API** | The "server" that every app talks to. Holds all business rules | Node.js + Express + TypeScript | http://localhost:4000 |
 | **Database** | Where everything is stored | PostgreSQL | port 5433 (local) |
 
-Prices are in **Indian rupees (₹)**. Payments are a **demo**: no real card details are ever collected.
+Prices are in **Indian rupees (₹)**. **UPI payments** (through Razorpay) and **WhatsApp order updates** (through the
+official WhatsApp Business Platform) are both in a clearly labelled **demo mode** until you add your own accounts —
+see [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md). No UPI PIN, card or bank details are ever collected or stored.
 
 > **How it fits together:** see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 > **Every API endpoint with examples:** see [docs/API.md](docs/API.md).
+> **Setting up UPI payments and WhatsApp (and what they cost):** see [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 > **Uploading to GitHub and putting it online:** see [DEPLOY.md](DEPLOY.md).
 
 ---
@@ -48,7 +51,7 @@ This will:
 At the end it prints your **sample logins** (they are also saved in `.env`):
 
 ```
-Staff dashboard  staff@fernway.local     /  <random password>
+Staff dashboard  staff@fernway.local     /  <random password>   (a manager account)
 Customer app     customer@fernway.local  /  <random password>
 ```
 
@@ -98,10 +101,17 @@ Log in with the **customer** account (or create a new account in the app).
 1. **Customer app:** browse a category, search "dal", "paruppu", "Maggi" or "surf excel", add items to the cart, then go to **Checkout**.
    - **Delivery:** the sample address (PIN code `635810`, Pernambut) is in the delivery area: ₹30 fee, **free over ₹500**.
    - **Pickup:** choose a day and a collection time. Pickup is always free.
-   - Choose **Pay on delivery/collection**, or the clearly labelled **Demo card payment** (nothing is charged).
+   - In the cart, choose what should happen **if an item is unavailable**: don't replace it, a similar item, or a product you pick.
+   - Choose **Pay on delivery/collection**, or **Pay now with UPI**. In demo mode a practice payment page opens
+     (marked **DEMO PAYMENT**) where you can try *success*, *failure*, *pending* and *cancel* — no money moves.
+   - Tap **English / தமிழ்** on the home screen to switch the whole app to Tamil.
 2. **Staff dashboard:** your new order appears under **Orders** (it refreshes every 30 seconds). Open it and press
    **Start preparing** → **Mark ready for pickup / Send out for delivery** → **Mark as completed**.
-3. **Customer app:** the order screen updates by itself (every 20 seconds, or pull down to refresh).
+   If an item can't be found, press **Can't find it** to remove or replace it. The customer's choice is shown, and they
+   never pay more than they ordered (paid orders are refunded the difference automatically).
+3. **Customer app:** the order screen updates by itself (every 20 seconds, or pull down to refresh), and every change
+   appears under **Account → Updates**. Finished orders have **Order again**.
+4. **Staff dashboard → WhatsApp log:** in demo mode, read the WhatsApp messages the customer *would* have received.
 
 **PIN codes to test the delivery area** (sample zones — check them and set your real areas and fees)
 
@@ -131,7 +141,7 @@ Run these from the project folder:
 | `npm run db:reset` | ⚠️ **Delete all data** and start again with fresh sample data |
 | `npm test` | Run the API tests (needs the database running) |
 | `npm run typecheck` | Check all TypeScript code for mistakes |
-| `npm run create-staff -- --email you@example.com --password "a-long-password" --name "Your Name"` | Create another staff account |
+| `npm run create-staff -- --email you@example.com --password "a-long-password" --name "Your Name" --role staff` | Create a staff (or `--role manager`) account. The first account defaults to manager |
 
 ---
 
@@ -150,6 +160,9 @@ All settings live in **one file**, `.env`, in the project folder. `npm run setup
 | `PICKUP_*` | Pickup opening hours, slot length, orders per slot, days ahead, notice time |
 | `IMAGE_STORAGE` | `disk` (default) or `database`, which keeps uploaded photos in PostgreSQL (for hosts that wipe their disk) |
 | `LOAD_SAMPLE_DATA` | `true` loads the sample data even in production (demo deployments only) |
+| `PAYMENTS_MODE`, `RAZORPAY_*`, `PAYMENT_TIMEOUT_MINUTES` | UPI payments: `demo` (default) or `razorpay` (Razorpay test mode with `rzp_test_` keys). Live keys are refused unless `RAZORPAY_ALLOW_LIVE_PAYMENTS=true`. See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) |
+| `WHATSAPP_MODE`, `WHATSAPP_*` | WhatsApp order updates: `demo` (default), `cloud_api` or `off`. See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) |
+| `PUBLIC_API_URL` | The API's public web address, used in payment links (optional on your computer) |
 | `SEED_*` | Sample staff/customer logins (local development and demos). Change a password here and restart the API, and the login changes to match |
 
 After changing `.env`, stop (`Ctrl + C`) and restart `npm run dev`.
@@ -174,12 +187,37 @@ This is purely for convenience while developing. If you'd rather use your own Po
 3. Set `DATABASE_URL=postgres://fernway:choose-a-password@localhost:5432/fernway_market` in `.env`.
 4. Run `npm run dev:no-db`. Tables and sample data are created automatically.
 
-### Payments (demo only)
-This first version has **no real payment processing** and never asks for card numbers. Customers choose
-**pay on delivery/collection** or a **demo card payment** that just marks the order as paid.
-Adding real payments needs an account with a payment provider (e.g. Razorpay or Stripe). That is a paid service
-that needs API keys. You would use their *test mode* first, and card details would go straight to the provider,
-never to this API.
+### Payments (UPI demo until you add Razorpay)
+Customers choose **pay on delivery/collection** or **pay now with UPI**. UPI payments go through Razorpay's secure
+checkout, and the customer enters their UPI PIN only in their own UPI app. The server creates each payment and checks
+the result with Razorpay (signature, amount and status) before an order is marked paid. Unpaid UPI orders hold their
+items for 15 minutes and are then cancelled automatically. Refunds for cancelled or changed paid orders are automatic.
+
+Until you set `PAYMENTS_MODE=razorpay` with your own keys, a **clearly labelled demo** payment page is used and no money
+moves. With Razorpay **test** keys (`rzp_test_…`) customers see Razorpay's real checkout in **test mode**: nothing is
+charged, and the app, payment page and dashboard say "Razorpay TEST mode". **Live** keys charge real money; the API
+refuses to start with them unless `RAZORPAY_ALLOW_LIVE_PAYMENTS=true`. **Neither test nor live payments have been tried
+with a real Razorpay account yet.** Follow [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) first.
+
+### WhatsApp order updates (demo until you set up Meta's WhatsApp Business Platform)
+Customers can ask for order updates on WhatsApp, in English or Tamil. In demo mode the messages are only recorded and
+shown in the dashboard's **WhatsApp log**. Real sending uses Meta's official Cloud API with approved templates, never
+unofficial WhatsApp tools. Setup, templates and costs: [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
+
+### Staff roles
+- **Staff** run orders (statuses, substitutions, notes), adjust stock (always with a reason), upload photos and reply
+  to customer help requests. They can't change prices or settings, or cancel orders that were paid online.
+- **Managers** can do everything, including prices, products, categories, delivery zones, opening hours, offers,
+  loyalty points, refunds and staff accounts. The sample staff login is a manager.
+
+### History of every change
+Every stock change is recorded automatically by the database with the reason, the order and the person
+(**Stock history** in the dashboard). Every order change (status, payment, refund, substitution, cancellation,
+staff note) is listed under **Activity** on the order.
+
+### Optional extras: offers and loyalty points
+Bundle **offers** (for example "Sambar combo, save ₹20") and **loyalty points** are both **switched off** by default.
+A manager can switch them on under **Store settings** and **Offers**.
 
 ### Delivery area (no paid maps service)
 Instead of a paid maps/geocoding API (like Google Maps), the delivery area is defined by **PIN codes** (or PIN-code
@@ -194,12 +232,19 @@ prefixes). It's free, works offline and is easy for staff to change in the dashb
 - **Loading the sample products into an existing database:** just restart the API (`npm run dev`). On start it adds
   any sample products that are new since your database was created, once, without touching products you have
   edited. You can also run `npm run db:seed`, which additionally fills in sample photos for products that have none.
-- **Photos:** 62 products have real photos from Wikimedia Commons, used under free licences and credited in
-  [backend/seed-images/CREDITS.md](backend/seed-images/CREDITS.md). None of them are official brand images.
-  Products without a photo — all the Hindustan Unilever and Nestlé items, and a few staples — show a clearly labelled
-  **"Photo coming soon"** placeholder; the dashboard marks them **No photo** and the **Missing photo only** filter lists them.
-- **Adding photos:** **Products → Edit → Upload photo** (JPG/PNG/WebP up to 5 MB). Use photos you're allowed to use —
-  the easiest is to photograph the packs on your own shelves. On your computer they're saved in
+- **Photos:** 64 products have real photos from Wikimedia Commons, used under free licences. Each photo's source,
+  author and licence are recorded in [backend/seed-images/sources.json](backend/seed-images/sources.json), which
+  generates [backend/seed-images/CREDITS.md](backend/seed-images/CREDITS.md) (`npm --prefix backend run image-credits`).
+  None of them are official brand images. The customer app shows each photo's credit, and lists them all under
+  **Help → Photo credits**.
+- **Image needed:** the other 33 products (all the Hindustan Unilever and Nestlé items, and staples such as Ponni Raw
+  Rice and Dosa Rice) show a clearly labelled **"Image needed"** placeholder, never an emoji or an unrelated photo. The
+  dashboard marks them **Image needed** and the **Image needed only** filter lists them.
+- **Category photos:** every category has a real photograph from Wikimedia Commons, credited in the same files.
+  Managers can replace them under **Categories → Edit**.
+- **Adding photos:** **Products → Edit → Upload photo** (JPG/PNG/WebP up to 8 MB, resized and compressed automatically).
+  Use photos you're allowed to use; the easiest is to photograph the packs on your own shelves. Never copy photos from
+  shopping websites. On your computer they're saved in
   `backend/uploads/products/`; with `IMAGE_STORAGE=database` (used online) they're stored in PostgreSQL, so they survive redeploys.
 
 ### Stock can't be oversold
@@ -267,6 +312,9 @@ This project is a solid starting point, but a public launch needs a few more thi
 - [ ] Set `NODE_ENV=production`, a new long `JWT_SECRET`, and `CORS_ORIGINS` to your real dashboard address.
 - [ ] Remove the sample accounts and data. `db:seed`/`db:reset` refuse to run in production.
 - [ ] Use a long-lived database plan with automated backups.
-- [ ] Add a real payment provider (in its test mode first) if you want online payments.
+- [ ] For UPI payments: complete the Razorpay go-live checklist in [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) (test mode first).
+- [ ] For WhatsApp updates: set up the WhatsApp Business Platform and get the templates approved ([docs/INTEGRATIONS.md](docs/INTEGRATIONS.md)).
+- [ ] Publish your terms, refund/cancellation, privacy and delivery policies (Razorpay needs them).
+- [ ] Set your real opening hours, holidays and delivery zones in the dashboard.
 - [ ] Build the phone app for the stores with EAS: https://docs.expo.dev/build/introduction/.
-- [ ] Optional extras: password reset emails, push notifications for order updates, staff roles (manager vs picker).
+- [ ] Optional extras: password reset emails, phone push notifications for order updates.

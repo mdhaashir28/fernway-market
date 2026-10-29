@@ -1,6 +1,7 @@
 import { LoaderCircle, Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { EmptyState, ErrorState, Field, Modal, PageHeader, Spinner } from '../components/ui'
+import { EmptyState, ErrorState, Field, ManagerOnly, Modal, PageHeader, Spinner } from '../components/ui'
+import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { useToast } from '../context/ToastContext'
 import { ApiError, api } from '../lib/api'
@@ -10,6 +11,7 @@ import { useAsync } from '../lib/useAsync'
 
 export function DeliveryZonesPage() {
   const { money } = useStore()
+  const { isManager } = useAuth()
   const zones = useAsync(() => api.get<{ items: DeliveryZone[] }>('/api/staff/delivery-zones').then((r) => r.items), [])
   const [editing, setEditing] = useState<DeliveryZone | 'new' | null>(null)
 
@@ -19,11 +21,14 @@ export function DeliveryZonesPage() {
         title="Delivery zones"
         subtitle="Where you deliver and what it costs. A customer's PIN code must start with one of a zone's PIN codes or prefixes."
         actions={
-          <button className="btn btn-primary" onClick={() => setEditing('new')}>
-            <Plus size={16} aria-hidden /> New zone
-          </button>
+          isManager && (
+            <button className="btn btn-primary" onClick={() => setEditing('new')}>
+              <Plus size={16} aria-hidden /> New zone
+            </button>
+          )
         }
       />
+      {!isManager && <ManagerOnly>Only a manager can add or change delivery zones and fees.</ManagerOnly>}
       <div className="alert alert-info">
         Enter full 6-digit PIN codes (for example <code>635810</code> for Pernambut), or a shorter prefix to cover several:{' '}
         <code>6358</code> covers every PIN code from 635800 to 635899. If a PIN code matches several zones, the longest match
@@ -70,9 +75,11 @@ export function DeliveryZonesPage() {
                     <td className="num">{z.minOrderCents ? money(z.minOrderCents) : '—'}</td>
                     <td>{z.isActive ? <span className="badge stock-ok">Active</span> : <span className="badge badge-muted">Paused</span>}</td>
                     <td className="num">
-                      <button className="btn btn-secondary btn-sm" onClick={() => setEditing(z)} aria-label={`Edit ${z.name}`}>
-                        <Pencil size={14} aria-hidden /> Edit
-                      </button>
+                      {isManager && (
+                        <button className="btn btn-secondary btn-sm" onClick={() => setEditing(z)} aria-label={`Edit ${z.name}`}>
+                          <Pencil size={14} aria-hidden /> Edit
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

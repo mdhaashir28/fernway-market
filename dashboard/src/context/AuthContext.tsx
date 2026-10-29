@@ -4,12 +4,16 @@ import type { User } from '../lib/types'
 
 interface AuthContextValue {
   user: User | null
+  /** Managers can change prices, settings, delivery zones, offers and staff accounts. */
+  isManager: boolean
   checking: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
+
+const isStaffRole = (user: User) => user.role === 'staff' || user.role === 'manager'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -28,21 +32,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!getToken()) return
     api
       .get<{ user: User }>('/api/auth/me')
-      .then(({ user }) => (user.role === 'staff' ? setUser(user) : logout()))
+      .then(({ user }) => (isStaffRole(user) ? setUser(user) : logout()))
       .catch(() => logout())
       .finally(() => setChecking(false))
   }, [logout])
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await api.post<{ token: string; user: User }>('/api/auth/login', { email, password })
-    if (result.user.role !== 'staff') {
-      throw new ApiError(403, 'NOT_STAFF', 'This is a customer account. Please log in with a staff account.')
+    if (!isStaffRole(result.user)) {
+      throw new ApiError(403, 'NOT_STAFF', 'This is a customer account. Please log in with a staff or manager account.')
     }
     setToken(result.token)
     setUser(result.user)
   }, [])
 
-  const value = useMemo(() => ({ user, checking, login, logout }), [user, checking, login, logout])
+  const value = useMemo(
+    () => ({ user, isManager: user?.role === 'manager', checking, login, logout }),
+    [user, checking, login, logout],
+  )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

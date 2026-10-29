@@ -10,6 +10,7 @@ export const backendDir = path.resolve(import.meta.dirname, '..');
 export const projectRoot = path.resolve(backendDir, '..');
 
 const envFile = path.join(projectRoot, '.env');
-if (fs.existsSync(envFile)) {
+// SKIP_DOTENV=true is used by tests that need settings to come only from their own environment.
+if (fs.existsSync(envFile) && process.env.SKIP_DOTENV !== 'true') {
   dotenv.config({ path: envFile, quiet: true });
 }

@@ -61,7 +61,7 @@ export function LoginPage() {
       <section className="login-panel">
         <form className="login-form card" onSubmit={handleSubmit} noValidate>
           <h1>Staff login</h1>
-          <p className="muted">Sign in with your store staff account.</p>
+          <p className="muted">Sign in with your staff or manager account.</p>
 
           {error && (
             <div className="alert alert-error" role="alert">
@@ -108,12 +108,17 @@ export function LoginPage() {
           <p className="hint">
             {import.meta.env.DEV ? (
               <>
-                First time? The sample staff login for this computer is in your project's <code>.env</code> file
+                First time? The sample manager login for this computer is in your project's <code>.env</code> file
                 (SEED_STAFF_EMAIL / SEED_STAFF_PASSWORD).
+              </>
+            ) : window.location.hostname.endsWith('.onrender.com') ? (
+              <>
+                Demo site: the manager login is in Render → <strong>meeranji-api</strong> → Environment
+                (SEED_STAFF_EMAIL / SEED_STAFF_PASSWORD). It is different from your local login.
               </>
             ) : (
               <>
-                Demo site: the staff login for this live site is in <code>.env.vercel.local</code> in your project folder
+                Demo site: the manager login for this live site is in <code>.env.vercel.local</code> in your project folder
                 (or in Vercel → API project → Settings → Environment Variables). It is different from your local login.
               </>
             )}

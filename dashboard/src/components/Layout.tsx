@@ -1,4 +1,18 @@
-import { LayoutDashboard, LogOut, MapPin, Package, ShoppingBag, Tags, TriangleAlert } from 'lucide-react'
+import {
+  BadgePercent,
+  History,
+  LayoutDashboard,
+  LifeBuoy,
+  LogOut,
+  MapPin,
+  MessageCircle,
+  Package,
+  Settings,
+  ShoppingBag,
+  Tags,
+  TriangleAlert,
+  Users,
+} from 'lucide-react'
 import { NavLink, Outlet } from 'react-router'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
@@ -6,10 +20,16 @@ import { useStore } from '../context/StoreContext'
 const NAV = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/orders', label: 'Orders', icon: ShoppingBag },
+  { to: '/support', label: 'Customer help', icon: LifeBuoy },
   { to: '/products', label: 'Products', icon: Package },
   { to: '/categories', label: 'Categories', icon: Tags },
   { to: '/low-stock', label: 'Low stock', icon: TriangleAlert },
+  { to: '/stock-history', label: 'Stock history', icon: History },
   { to: '/delivery-zones', label: 'Delivery zones', icon: MapPin },
+  { to: '/offers', label: 'Offers', icon: BadgePercent },
+  { to: '/messages', label: 'WhatsApp log', icon: MessageCircle },
+  { to: '/settings', label: 'Store settings', icon: Settings },
+  { to: '/staff', label: 'Staff accounts', icon: Users, managerOnly: true },
 ]
 
 export function Logo() {
@@ -25,7 +45,7 @@ export function Logo() {
 }
 
 export function Layout() {
-  const { user, logout } = useAuth()
+  const { user, isManager, logout } = useAuth()
   const { store } = useStore()
 
   return (
@@ -42,7 +62,7 @@ export function Layout() {
           </div>
         </div>
         <nav aria-label="Main">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {NAV.filter((item) => !item.managerOnly || isManager).map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
               <Icon size={18} aria-hidden />
               <span>{label}</span>
@@ -54,7 +74,10 @@ export function Layout() {
             <span className="avatar" aria-hidden>
               {user?.name.slice(0, 1).toUpperCase()}
             </span>
-            <span className="user-name">{user?.name}</span>
+            <span className="user-name">
+              {user?.name}
+              <span className={`badge badge-small ${isManager ? 'badge-manager' : 'badge-muted'}`}>{isManager ? 'Manager' : 'Staff'}</span>
+            </span>
           </div>
           <button className="nav-link logout" onClick={logout}>
             <LogOut size={18} aria-hidden />

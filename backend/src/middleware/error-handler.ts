@@ -2,20 +2,21 @@
 import type { NextFunction, Request, Response } from 'express';
 import multer from 'multer';
 import { ApiError } from '../lib/errors.js';
+import { logError, safePath } from '../lib/logger.js';
 
 export function notFoundHandler(req: Request, res: Response) {
   res.status(404).json({ error: { code: 'NOT_FOUND', message: `No endpoint for ${req.method} ${req.path}` } });
 }
 
 // Express recognises error handlers by their four arguments, so keep `_next`.
-export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
+export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof ApiError) {
     res.status(err.status).json({ error: { code: err.code, message: err.message, details: err.details } });
     return;
   }
 
   if (err instanceof multer.MulterError) {
-    const message = err.code === 'LIMIT_FILE_SIZE' ? 'Images must be 5 MB or smaller.' : `Upload failed: ${err.message}`;
+    const message = err.code === 'LIMIT_FILE_SIZE' ? 'Images must be 8 MB or smaller.' : `Upload failed: ${err.message}`;
     res.status(400).json({ error: { code: 'UPLOAD_ERROR', message } });
     return;
   }
@@ -43,6 +44,6 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return;
   }
 
-  console.error('Unexpected error:', err);
+  logError(`${req.method} ${safePath(req.originalUrl)}`, err);
   res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong on our side. Please try again.' } });
 }

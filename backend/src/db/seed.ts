@@ -6,16 +6,24 @@ import path from 'node:path';
 import bcrypt from 'bcryptjs';
 import { config } from '../config.js';
 import { backendDir } from '../env.js';
+import { GATEWAY, setStockContext } from '../services/audit.service.js';
 import { changeOrderStatus, createOrder, type OrderStatus } from '../services/order.service.js';
+import { markPaymentPaid } from '../services/payment.service.js';
 import { listUpcomingSlots } from '../services/pickup.service.js';
 import { pool, withTransaction, type Db } from './pool.js';
 import {
+  categoryNamesTa,
+  photosAddedLater,
   previousCategoryOrder,
+  renamedSamplePhotos,
+  withdrawnSamplePhotos,
+  productNamesTa,
   SAMPLE_DATA_VERSION,
   sampleCustomerAddress,
   seedCategories,
   seedDeliveryZones,
   seedProducts,
+  seedPromotions,
 } from './seed-data.js';
 
 /** Sample data is allowed everywhere except production, unless LOAD_SAMPLE_DATA=true. */
@@ -92,10 +100,10 @@ async function loadSampleCatalog(client: Db, log: (msg: string) => void, { fillM
   // "DO NOTHING" without a target skips rows that clash on the slug OR the name.
   for (const category of seedCategories) {
     await client.query(
-      `INSERT INTO categories (name, slug, description, icon, sort_order)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO categories (name, slug, description, sort_order)
+       VALUES ($1, $2, $3, $4)
        ON CONFLICT DO NOTHING`,
-      [category.name, category.slug, category.description, category.icon, category.sortOrder],
+      [category.name, category.slug, category.description, category.sortOrder],
     );
   }
   const { rows: categoryRows } = await client.query<{ id: number; slug: string; name: string }>(
@@ -113,8 +121,8 @@ async function loadSampleCatalog(client: Db, log: (msg: string) => void, { fillM
   const column = <T>(pick: (p: (typeof products)[number]) => T) => products.map(pick);
 
   const { rows: added } = await client.query<{ id: number; sku: string }>(
-    `INSERT INTO products (category_id, sku, name, brand, description, price_cents, unit_label, icon, is_active)
-     SELECT * FROM unnest($1::int[], $2::text[], $3::text[], $4::text[], $5::text[], $6::int[], $7::text[], $8::text[], $9::boolean[])
+    `INSERT INTO products (category_id, sku, name, brand, description, price_cents, unit_label, is_active, name_ta)
+     SELECT * FROM unnest($1::int[], $2::text[], $3::text[], $4::text[], $5::text[], $6::int[], $7::text[], $8::boolean[], $9::text[])
      ON CONFLICT DO NOTHING
      RETURNING id, sku`,
     [
@@ -125,12 +133,13 @@ async function loadSampleCatalog(client: Db, log: (msg: string) => void, { fillM
       column((p) => p.description),
       column((p) => p.priceCents),
       column((p) => p.unitLabel),
-      column((p) => p.icon),
       column((p) => p.isActive ?? true),
+      column((p) => productNamesTa[p.sku] ?? null),
     ],
   );
   if (added.length) {
     const seedBySku = new Map(products.map((p) => [p.sku, p]));
+    await setStockContext(client, { reason: 'sample_data' });
     await client.query(
       `INSERT INTO inventory (product_id, quantity, low_stock_threshold)
        SELECT * FROM unnest($1::int[], $2::int[], $3::int[])`,
@@ -155,6 +164,54 @@ async function loadSampleCatalog(client: Db, log: (msg: string) => void, { fillM
     );
     if (rowCount) log(`  ✔ Added ${rowCount} sample product photos (credits in backend/seed-images/CREDITS.md)`);
   }
+
+  // --- Tamil names (only where none has been set) ---------------------------
+  await client.query(
+    `UPDATE categories c SET name_ta = v.name_ta
+     FROM unnest($1::text[], $2::text[]) AS v(slug, name_ta)
+     WHERE c.slug = v.slug AND c.name_ta IS NULL`,
+    [Object.keys(categoryNamesTa), Object.values(categoryNamesTa)],
+  );
+  await client.query(
+    `UPDATE products p SET name_ta = v.name_ta
+     FROM unnest($1::text[], $2::text[]) AS v(sku, name_ta)
+     WHERE p.sku = v.sku AND p.name_ta IS NULL`,
+    [Object.keys(productNamesTa), Object.values(productNamesTa)],
+  );
+
+  // --- Category photos (backend/seed-images/categories/<slug>.jpg) ----------
+  const categoryPhotos = sampleCategoryPhotos();
+  if (categoryPhotos.size) {
+    await client.query(
+      `UPDATE categories c SET image_url = v.url
+       FROM unnest($1::text[], $2::text[]) AS v(slug, url)
+       WHERE c.slug = v.slug AND c.image_url IS NULL`,
+      [[...categoryPhotos.keys()], [...categoryPhotos.values()]],
+    );
+  }
+
+  // --- Example bundle offers (offers stay OFF until a manager switches them on)
+  const { rows: promotionCount } = await client.query<{ count: number }>('SELECT count(*)::int AS count FROM promotions');
+  if (promotionCount[0].count === 0) {
+    for (const promotion of seedPromotions) {
+      const { rows: ids } = await client.query<{ id: number; sku: string }>('SELECT id, sku FROM products WHERE sku = ANY($1::text[])', [
+        promotion.items.map((i) => i.sku),
+      ]);
+      if (ids.length !== promotion.items.length) continue;
+      const { rows } = await client.query<{ id: number }>(
+        'INSERT INTO promotions (name, name_ta, description, discount_cents) VALUES ($1, $2, $3, $4) RETURNING id',
+        [promotion.name, promotion.nameTa, promotion.description, promotion.discountCents],
+      );
+      for (const item of promotion.items) {
+        await client.query('INSERT INTO promotion_items (promotion_id, product_id, quantity) VALUES ($1, $2, $3)', [
+          rows[0].id,
+          ids.find((p) => p.sku === item.sku)!.id,
+          item.quantity,
+        ]);
+      }
+    }
+    log(`  ✔ Added ${seedPromotions.length} example bundle offers (switched off until you enable offers)`);
+  }
 }
 
 /**
@@ -168,6 +225,24 @@ async function updateOlderSampleData(client: Db, log: (msg: string) => void) {
   const run = async (sql: string, params: unknown[]) => {
     changes += (await client.query(sql, params)).rowCount ?? 0;
   };
+
+  // Sample photos that moved to a new file, or were withdrawn.
+  for (const [from, to] of renamedSamplePhotos) {
+    await run('UPDATE products SET image_url = $2 WHERE image_url = $1', [from, to]);
+  }
+  await run('UPDATE products SET image_url = NULL, image_source = NULL WHERE image_url = ANY($1::text[])', [withdrawnSamplePhotos]);
+
+  // Sample photos that were added after these products already existed.
+  const laterPhotos = [...samplePhotos()].filter(([sku]) => photosAddedLater.includes(sku));
+  if (laterPhotos.length) {
+    const { rowCount } = await client.query(
+      `UPDATE products p SET image_url = photo.url
+       FROM unnest($1::text[], $2::text[]) AS photo(sku, url)
+       WHERE p.sku = photo.sku AND p.image_url IS NULL`,
+      [laterPhotos.map(([sku]) => sku), laterPhotos.map(([, url]) => url)],
+    );
+    if (rowCount) log(`  ✔ Added ${rowCount} new sample product photos (credits in backend/seed-images/CREDITS.md)`);
+  }
 
   // Delivery zones: sample postcodes → PIN codes around Pernambut.
   const [town, nearby] = seedDeliveryZones;
@@ -210,13 +285,14 @@ async function updateOlderSampleData(client: Db, log: (msg: string) => void) {
  */
 async function upsertSampleAccounts(client: Db, log: (msg: string) => void): Promise<void> {
   const accounts = [
-    { email: config.SEED_STAFF_EMAIL, password: config.SEED_STAFF_PASSWORD, name: 'Store Staff', role: 'staff' },
+    // The sample store account is a MANAGER (store owner): it can do everything, including adding staff.
+    { email: config.SEED_STAFF_EMAIL, password: config.SEED_STAFF_PASSWORD, name: 'Store Manager', role: 'manager' },
     { email: config.SEED_CUSTOMER_EMAIL, password: config.SEED_CUSTOMER_PASSWORD, name: 'Alex Shopper', role: 'customer' },
   ] as const;
 
   for (const account of accounts) {
     if (!account.email || !account.password) {
-      log(`  • Skipped the sample ${account.role} account (SEED_${account.role.toUpperCase()}_EMAIL/PASSWORD not set)`);
+      log(`  • Skipped the sample ${account.role} account (SEED_${account.role === 'manager' ? 'STAFF' : 'CUSTOMER'}_EMAIL/PASSWORD not set)`);
       continue;
     }
     const email = account.email.trim().toLowerCase();
@@ -281,6 +357,18 @@ function samplePhotos(): Map<string, string> {
   return result;
 }
 
+/** slug → image URL for the sample category photos (backend/seed-images/categories/<slug>.jpg). */
+function sampleCategoryPhotos(): Map<string, string> {
+  const sourceDir = path.join(backendDir, 'seed-images', 'categories');
+  const result = new Map<string, string>();
+  if (!fs.existsSync(sourceDir)) return result;
+  for (const file of fs.readdirSync(sourceDir)) {
+    if (!/\.(jpe?g|png|webp)$/i.test(file)) continue;
+    result.set(path.parse(file).name, `/sample-images/categories/${file}`);
+  }
+  return result;
+}
+
 /**
  * A few example orders in different states, so the staff dashboard has
  * something to show straight away. They go through the real order code,
@@ -295,7 +383,7 @@ async function seedSampleOrders(log: (msg: string) => void) {
      FROM users u WHERE lower(email) = lower($1)`,
     [config.SEED_CUSTOMER_EMAIL],
   );
-  const { rows: staff } = await pool.query<{ id: number }>("SELECT id FROM users WHERE role = 'staff' ORDER BY id LIMIT 1");
+  const { rows: staff } = await pool.query<{ id: number }>("SELECT id FROM users WHERE role IN ('manager', 'staff') ORDER BY id LIMIT 1");
   const customer = customers[0];
   if (!customer?.addressId || !staff[0]) return;
 
@@ -307,7 +395,11 @@ async function seedSampleOrders(log: (msg: string) => void) {
   const delivery = { type: 'delivery' as const, addressId: customer.addressId };
   const plans = [
     {
-      items: [{ productId: id('FV-001'), quantity: 1 }, { productId: id('RD-001'), quantity: 1 }, { productId: id('SP-007'), quantity: 1 }],
+      items: [
+        { productId: id('FV-001'), quantity: 1 },
+        { productId: id('RD-001'), quantity: 1, substitution: { preference: 'similar' as const } },
+        { productId: id('SP-007'), quantity: 1 },
+      ],
       fulfillment: { type: 'pickup' as const, pickupSlotId: slots[0].id },
       paymentMethod: 'pay_on_fulfillment' as const,
       notes: 'Please pick ripe bananas!',
@@ -316,7 +408,7 @@ async function seedSampleOrders(log: (msg: string) => void) {
     {
       items: [{ productId: id('RD-006'), quantity: 1 }, { productId: id('PA-007'), quantity: 2 }, { productId: id('HH-005'), quantity: 1 }],
       fulfillment: delivery,
-      paymentMethod: 'demo_card' as const,
+      paymentMethod: 'upi' as const,
       notes: null,
       statuses: ['preparing'] as OrderStatus[],
     },
@@ -336,6 +428,7 @@ async function seedSampleOrders(log: (msg: string) => void) {
     },
   ];
 
+  const manager = { id: staff[0].id, role: 'manager' as const };
   for (const plan of plans) {
     const { orderId } = await createOrder(customer.id, {
       items: plan.items,
@@ -343,7 +436,16 @@ async function seedSampleOrders(log: (msg: string) => void) {
       paymentMethod: plan.paymentMethod,
       notes: plan.notes,
     });
-    for (const status of plan.statuses) await changeOrderStatus(orderId, status, staff[0].id);
+    if (plan.paymentMethod === 'upi') {
+      // A sample DEMO UPI payment, so the dashboard shows a paid order.
+      const { rows } = await pool.query<{ id: number }>(
+        `INSERT INTO payments (order_id, provider, amount_cents, checkout_token)
+         SELECT id, 'demo', total_cents, md5(random()::text || id::text) || md5(id::text) FROM orders WHERE id = $1 RETURNING id`,
+        [orderId],
+      );
+      await markPaymentPaid(rows[0].id, `demo_pay_${rows[0].id}`, GATEWAY);
+    }
+    for (const status of plan.statuses) await changeOrderStatus(orderId, status, manager);
   }
   log(`  ✔ Added ${plans.length} sample orders`);
 }

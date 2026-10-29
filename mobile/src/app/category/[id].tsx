@@ -7,6 +7,7 @@ import type { Category } from '@/api/types';
 import { FilterChips, type FilterState } from '@/components/filters';
 import { ProductGrid } from '@/components/products';
 import { EmptyState, ErrorView, LoadingView } from '@/components/states';
+import { useT } from '@/i18n';
 import { useApi } from '@/lib/useApi';
 import { useProductSearch } from '@/lib/useProductSearch';
 import { colors, spacing } from '@/theme';
@@ -15,6 +16,7 @@ export default function CategoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const categoryId = Number(id);
   const [filters, setFilters] = useState<FilterState>({ inStock: false, sort: 'name' });
+  const { t, localName } = useT();
 
   const categories = useApi(() => api.get<{ items: Category[] }>('/api/categories').then((r) => r.items), []);
   const category = categories.data?.find((c) => c.id === categoryId);
@@ -27,7 +29,7 @@ export default function CategoryScreen() {
 
   return (
     <View style={styles.screen}>
-      <Stack.Screen options={{ title: category ? `${category.icon} ${category.name}` : 'Category' }} />
+      <Stack.Screen options={{ title: category ? localName(category) : t('Category') }} />
       <ProductGrid
         products={results.loading ? [] : results.items}
         refreshing={results.refreshing}
@@ -46,7 +48,7 @@ export default function CategoryScreen() {
           ) : results.error ? (
             <ErrorView error={results.error} onRetry={results.retry} />
           ) : (
-            <EmptyState icon="leaf-outline" title="Nothing here right now" message="Try removing a filter, or check back soon." />
+            <EmptyState icon="leaf-outline" title={t('Nothing here right now')} message={t('Try removing a filter, or check back soon.')} />
           )
         }
       />

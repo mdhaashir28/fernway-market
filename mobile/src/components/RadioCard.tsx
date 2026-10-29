@@ -22,7 +22,8 @@ export function RadioCard({
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="radio"
-      accessibilityState={{ checked: selected, disabled }}
+      aria-checked={selected}
+      aria-disabled={disabled}
       accessibilityLabel={accessibilityLabel}
       style={({ pressed }) => [
         styles.card,

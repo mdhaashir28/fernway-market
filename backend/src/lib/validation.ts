@@ -35,5 +35,3 @@ export const optionalText = (max: number) =>
     .nullish()
     .transform((value) => (value === undefined ? undefined : value || null));
 
-/** An optional emoji used as a picture when there is no photo. */
-export const optionalIcon = optionalText(16);

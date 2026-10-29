@@ -1,7 +1,8 @@
-import type { OrderStatus, PaymentMethod, PaymentStatus } from './types'
+import type { OrderStatus, PaymentMethod, PaymentStatus, StockReason, SupportTopic } from './types'
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: 'Pending',
+  awaiting_payment: 'Awaiting payment',
+  confirmed: 'Confirmed',
   preparing: 'Preparing',
   ready_for_pickup: 'Ready for pickup',
   out_for_delivery: 'Out for delivery',
@@ -11,7 +12,8 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
 
 /** The words on the button that moves an order to each status. */
 export const STATUS_ACTIONS: Record<OrderStatus, string> = {
-  pending: 'Mark as pending',
+  awaiting_payment: 'Wait for payment',
+  confirmed: 'Mark as confirmed',
   preparing: 'Start preparing',
   ready_for_pickup: 'Mark ready for pickup',
   out_for_delivery: 'Send out for delivery',
@@ -21,14 +23,39 @@ export const STATUS_ACTIONS: Record<OrderStatus, string> = {
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   pay_on_fulfillment: 'Pay on delivery / collection',
-  demo_card: 'Demo card payment',
+  upi: 'UPI (online)',
+  demo_card: 'Demo card (older demo — no money moved)',
 }
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   unpaid: 'Unpaid',
+  pending: 'Payment pending',
+  failed: 'Payment failed',
   paid: 'Paid',
+  refund_pending: 'Refund in progress',
+  partially_refunded: 'Partly refunded',
   refunded: 'Refunded',
 }
+
+/** Reasons staff can choose when they change stock by hand. */
+export const MANUAL_STOCK_REASONS: { value: Extract<StockReason, 'delivery_received' | 'damaged' | 'stock_count' | 'adjustment'>; label: string }[] = [
+  { value: 'delivery_received', label: 'Delivery received' },
+  { value: 'damaged', label: 'Damaged / expired' },
+  { value: 'stock_count', label: 'Stock count' },
+  { value: 'adjustment', label: 'Other adjustment' },
+]
+
+export const SUPPORT_TOPIC_LABELS: Record<SupportTopic, string> = {
+  missing_item: 'Missing item',
+  damaged_item: 'Damaged or spoiled item',
+  wrong_item: 'Wrong item',
+  late: 'Late order',
+  payment: 'Payment problem',
+  refund: 'Refund question',
+  other: 'Something else',
+}
+
+export const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 /** 4500 → "₹45", 4550 → "₹45.50". Amounts are stored in paise (or cents). */
 export function formatMoney(cents: number, currency: string): string {

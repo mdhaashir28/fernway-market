@@ -9,6 +9,8 @@ import { Banner, Button, TextField } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { useToast } from '@/context/ToastContext';
+import { useT } from '@/i18n';
+import { useErrorText } from '@/i18n/errors';
 import { goBack } from '@/lib/navigation';
 import { useApi, useDebounced } from '@/lib/useApi';
 import { colors, font, spacing } from '@/theme';
@@ -25,6 +27,8 @@ export default function AddressEditScreen() {
   const { user } = useAuth();
   const { money } = useStore();
   const toast = useToast();
+  const { t } = useT();
+  const errorText = useErrorText();
 
   const existing = useApi(
     () => api.get<{ items: Address[] }>('/api/addresses').then((r) => r.items.find((a) => a.id === Number(id)) ?? null),
@@ -89,11 +93,11 @@ export default function AddressEditScreen() {
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!form.recipientName.trim()) e.recipientName = 'Please enter the recipient name';
-    if (form.phone.trim().length < 6) e.phone = 'Please enter a phone number';
-    if (!form.line1.trim()) e.line1 = 'Please enter the street address';
-    if (!form.city.trim()) e.city = 'Please enter the town or city';
-    if (form.postcode.trim().length < 3) e.postcode = 'Please enter a valid PIN code';
+    if (!form.recipientName.trim()) e.recipientName = t('Please enter the recipient name');
+    if (form.phone.trim().length < 6) e.phone = t('Please enter a phone number');
+    if (!form.line1.trim()) e.line1 = t('Please enter the street address');
+    if (!form.city.trim()) e.city = t('Please enter the town or city');
+    if (form.postcode.trim().length < 3) e.postcode = t('Please enter a valid PIN code');
     return e;
   }
 
@@ -112,11 +116,12 @@ export default function AddressEditScreen() {
     try {
       if (isNew) await api.post('/api/addresses', body);
       else await api.put(`/api/addresses/${id}`, body);
-      toast(isNew ? 'Address saved' : 'Address updated');
+      toast(isNew ? t('Address saved') : t('Address updated'));
       goBack();
     } catch (err) {
-      if (err instanceof ApiError && Object.keys(err.fieldErrors).length) setErrors(err.fieldErrors);
-      else setFormError((err as Error).message);
+      if (err instanceof ApiError && Object.keys(err.fieldErrors).length) {
+        setErrors(Object.fromEntries(Object.entries(err.fieldErrors).map(([field, message]) => [field, t(message)])));
+      } else setFormError(errorText(err));
     } finally {
       setSaving(false);
     }
@@ -127,24 +132,24 @@ export default function AddressEditScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
-      <Stack.Screen options={{ title: isNew ? 'New address' : 'Edit address' }} />
+      <Stack.Screen options={{ title: isNew ? t('New address') : t('Edit address') }} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {formError && <Banner kind="error">{formError}</Banner>}
-        <TextField label="Address name" value={form.label} onChangeText={set('label')} hint='e.g. "Home" or "Work"' maxLength={40} />
-        <TextField label="Recipient name" value={form.recipientName} onChangeText={set('recipientName')} error={errors.recipientName} autoComplete="name" />
-        <TextField label="Phone" value={form.phone} onChangeText={set('phone')} error={errors.phone} keyboardType="phone-pad" autoComplete="tel" />
-        <TextField label="Street address" value={form.line1} onChangeText={set('line1')} error={errors.line1} autoComplete="street-address" />
-        <TextField label="Flat, floor, building (optional)" value={form.line2} onChangeText={set('line2')} error={errors.line2} />
-        <TextField label="Town / city" value={form.city} onChangeText={set('city')} error={errors.city} />
+        <TextField label={t('Address name')} value={form.label} onChangeText={set('label')} hint={t('e.g. "Home" or "Work"')} maxLength={40} />
+        <TextField label={t('Recipient name')} value={form.recipientName} onChangeText={set('recipientName')} error={errors.recipientName} autoComplete="name" />
+        <TextField label={t('Phone')} value={form.phone} onChangeText={set('phone')} error={errors.phone} keyboardType="phone-pad" autoComplete="tel" />
+        <TextField label={t('Street address')} value={form.line1} onChangeText={set('line1')} error={errors.line1} autoComplete="street-address" />
+        <TextField label={t('Flat, floor, building (optional)')} value={form.line2} onChangeText={set('line2')} error={errors.line2} />
+        <TextField label={t('Town / city')} value={form.city} onChangeText={set('city')} error={errors.city} />
         <TextField
-          label="PIN code"
+          label={t('PIN code')}
           value={form.postcode}
           onChangeText={set('postcode')}
           error={errors.postcode}
           autoCapitalize="characters"
           autoComplete="postal-code"
           keyboardType="number-pad"
-          hint="6-digit PIN, e.g. 635810"
+          hint={t('6-digit PIN, e.g. 635810')}
           maxLength={12}
         />
         <View style={styles.checkBox}>
@@ -152,29 +157,33 @@ export default function AddressEditScreen() {
             <ActivityIndicator color={colors.primary} />
           ) : check ? (
             <Banner kind={check.available ? 'success' : 'warning'}>
-              {check.available && check.feeCents != null ? `${check.message} Delivery fee ${money(check.feeCents)}.` : check.message}
+              {check.available
+                ? check.feeCents != null
+                  ? t('Great — we deliver here. Delivery fee {fee}.', { fee: check.feeCents ? money(check.feeCents) : t('free') })
+                  : t('Great — we deliver here.')
+                : t("Sorry, we don't deliver to {postcode} yet. You can choose store pickup instead.", { postcode })}
             </Banner>
           ) : null}
         </View>
         <TextField
-          label="Delivery instructions (optional)"
+          label={t('Delivery instructions (optional)')}
           value={form.instructions}
           onChangeText={set('instructions')}
           multiline
           maxLength={300}
-          placeholder="e.g. Blue door, please ring the bell"
+          placeholder={t('e.g. Blue door, please ring the bell')}
         />
         <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Use as my default address</Text>
+          <Text style={styles.switchLabel}>{t('Use as my default address')}</Text>
           <Switch
             value={form.isDefault}
             onValueChange={set('isDefault')}
             trackColor={{ true: colors.primary, false: colors.borderStrong }}
             thumbColor="#fff"
-            accessibilityLabel="Use as my default address"
+            accessibilityLabel={t('Use as my default address')}
           />
         </View>
-        <Button title={isNew ? 'Save address' : 'Save changes'} icon="checkmark" loading={saving} onPress={save} />
+        <Button title={isNew ? t('Save address') : t('Save changes')} icon="checkmark" loading={saving} onPress={save} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

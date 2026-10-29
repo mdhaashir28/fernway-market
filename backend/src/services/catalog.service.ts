@@ -1,6 +1,7 @@
 // Product queries shared by the customer catalogue and the staff dashboard.
 import type { Db } from '../db/pool.js';
 import { notFound } from '../lib/errors.js';
+import { imageCredit } from './image-credits.js';
 
 export type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
 export type ProductSort = 'relevance' | 'name' | 'price_asc' | 'price_desc' | 'newest' | 'stock_asc';
@@ -8,17 +9,18 @@ export type ProductSort = 'relevance' | 'name' | 'price_asc' | 'price_desc' | 'n
 export interface ProductRow {
   id: number;
   name: string;
+  nameTa: string | null;
   brand: string | null;
   description: string;
   priceCents: number;
   unitLabel: string;
   imageUrl: string | null;
-  icon: string | null;
+  imageSource: string | null;
   sku: string | null;
   isActive: boolean;
   categoryId: number;
   categoryName: string;
-  categoryIcon: string;
+  categoryNameTa: string | null;
   categoryIsActive: boolean;
   stockQuantity: number;
   lowStockThreshold: number;
@@ -27,9 +29,9 @@ export interface ProductRow {
 }
 
 const PRODUCT_SELECT = `
-  SELECT p.id, p.name, p.brand, p.description, p.price_cents AS "priceCents", p.unit_label AS "unitLabel",
-         p.image_url AS "imageUrl", p.icon, p.sku, p.is_active AS "isActive",
-         p.category_id AS "categoryId", c.name AS "categoryName", c.icon AS "categoryIcon",
+  SELECT p.id, p.name, p.name_ta AS "nameTa", p.brand, p.description, p.price_cents AS "priceCents", p.unit_label AS "unitLabel",
+         p.image_url AS "imageUrl", p.image_source AS "imageSource", p.sku, p.is_active AS "isActive",
+         p.category_id AS "categoryId", c.name AS "categoryName", c.name_ta AS "categoryNameTa",
          c.is_active AS "categoryIsActive",
          i.quantity AS "stockQuantity", i.low_stock_threshold AS "lowStockThreshold",
          p.created_at AS "createdAt", p.updated_at AS "updatedAt",
@@ -49,15 +51,16 @@ export function toPublicProduct(row: ProductRow) {
   return {
     id: row.id,
     name: row.name,
+    nameTa: row.nameTa,
     brand: row.brand,
     description: row.description,
     priceCents: row.priceCents,
     unitLabel: row.unitLabel,
     imageUrl: row.imageUrl,
-    icon: row.icon,
+    imageCredit: imageCredit(row.imageUrl, row.imageSource),
     categoryId: row.categoryId,
     categoryName: row.categoryName,
-    categoryIcon: row.categoryIcon,
+    categoryNameTa: row.categoryNameTa,
     availableQuantity: row.stockQuantity,
     stockStatus: getStockStatus(row.stockQuantity, row.lowStockThreshold),
   };
@@ -69,16 +72,18 @@ export function toStaffProduct(row: ProductRow) {
     id: row.id,
     sku: row.sku,
     name: row.name,
+    nameTa: row.nameTa,
     brand: row.brand,
     description: row.description,
     priceCents: row.priceCents,
     unitLabel: row.unitLabel,
     imageUrl: row.imageUrl,
-    icon: row.icon,
+    imageSource: row.imageSource,
+    imageCredit: imageCredit(row.imageUrl, row.imageSource),
     isActive: row.isActive,
     categoryId: row.categoryId,
     categoryName: row.categoryName,
-    categoryIcon: row.categoryIcon,
+    categoryNameTa: row.categoryNameTa,
     categoryIsActive: row.categoryIsActive,
     stockQuantity: row.stockQuantity,
     lowStockThreshold: row.lowStockThreshold,
@@ -110,7 +115,12 @@ export interface ProductFilters {
 const ACCENTED = 'ÁÀÂÄÃáàâäãÉÈÊËéèêëÍÌÎÏíìîïÓÒÔÖÕóòôöõÚÙÛÜúùûüÇçÑñ';
 const PLAIN = 'AAAAAaaaaaEEEEeeeeIIIIiiiiOOOOOoooooUUUUuuuuCcNn';
 const fold = (column: string) => `translate(${column}, '${ACCENTED}', '${PLAIN}')`;
-const foldText = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '');
+// Only Latin accents are removed — Tamil vowel signs are also "marks" in Unicode and must stay.
+const foldText = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .normalize('NFC');
 
 export async function findProducts(db: Db, filters: ProductFilters) {
   const where: string[] = [];
@@ -129,8 +139,8 @@ export async function findProducts(db: Db, filters: ProductFilters) {
   let nameOrBrandMatches = '';
   if (escapedSearch) {
     const term = param(`%${escapedSearch}%`);
-    nameOrBrandMatches = `(${fold('p.name')} ILIKE ${term} OR ${fold('p.brand')} ILIKE ${term})`;
-    where.push(`(${nameOrBrandMatches} OR ${fold('p.description')} ILIKE ${term} OR ${fold('c.name')} ILIKE ${term} OR p.sku ILIKE ${term})`);
+    nameOrBrandMatches = `(${fold('p.name')} ILIKE ${term} OR p.name_ta ILIKE ${term} OR ${fold('p.brand')} ILIKE ${term})`;
+    where.push(`(${nameOrBrandMatches} OR ${fold('p.description')} ILIKE ${term} OR ${fold('c.name')} ILIKE ${term} OR c.name_ta ILIKE ${term} OR p.sku ILIKE ${term})`);
   }
   if (filters.categoryId) where.push(`p.category_id = ${param(filters.categoryId)}`);
   if (filters.ids?.length) where.push(`p.id = ANY(${param(filters.ids)}::int[])`);

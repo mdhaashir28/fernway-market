@@ -13,7 +13,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import type { OrderStatus } from '@/api/types';
-import { STATUS_LABELS } from '@/lib/format';
+import { useFormat } from '@/lib/useFormat';
 import { colors, font, radius, shadow, spacing } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -48,7 +48,8 @@ export function Button({
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      aria-disabled={isDisabled}
+      aria-busy={loading}
       accessibilityHint={accessibilityHint}
       style={({ pressed }) => [
         styles.button,
@@ -126,7 +127,7 @@ export function Chip({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityState={{ selected }}
+      aria-selected={selected}
       style={({ pressed }) => [styles.chip, selected && styles.chipSelected, pressed && styles.pressed]}
     >
       {icon && <Ionicons name={icon} size={16} color={selected ? '#fff' : colors.primaryDark} />}
@@ -165,24 +166,38 @@ export function Banner({
 }
 
 // ---------------------------------------------------------------------------
-const STATUS_COLORS: Record<OrderStatus, { bg: string; fg: string }> = {
-  pending: { bg: colors.accentSoft, fg: colors.accentText },
-  preparing: { bg: colors.infoSoft, fg: colors.info },
-  ready_for_pickup: { bg: colors.violetSoft, fg: colors.violet },
-  out_for_delivery: { bg: colors.tealSoft, fg: colors.teal },
-  completed: { bg: colors.primarySoft, fg: colors.primaryDark },
-  cancelled: { bg: colors.dangerSoft, fg: colors.danger },
+// Each status has its own colour AND icon AND words, so it never relies on colour alone.
+const STATUS_STYLES: Record<OrderStatus, { bg: string; fg: string; icon: IconName }> = {
+  awaiting_payment: { bg: colors.accentSoft, fg: colors.accentText, icon: 'time-outline' },
+  confirmed: { bg: colors.infoSoft, fg: colors.info, icon: 'checkmark-circle-outline' },
+  preparing: { bg: colors.violetSoft, fg: colors.violet, icon: 'basket-outline' },
+  ready_for_pickup: { bg: colors.tealSoft, fg: colors.teal, icon: 'storefront-outline' },
+  out_for_delivery: { bg: colors.tealSoft, fg: colors.teal, icon: 'bicycle-outline' },
+  completed: { bg: colors.primarySoft, fg: colors.primaryDark, icon: 'checkmark-done-outline' },
+  cancelled: { bg: colors.dangerSoft, fg: colors.danger, icon: 'close-circle-outline' },
 };
 
 export function StatusBadge({ status }: { status: OrderStatus }) {
-  const c = STATUS_COLORS[status];
-  return <Badge label={STATUS_LABELS[status]} background={c.bg} color={c.fg} />;
+  const { statusLabel } = useFormat();
+  const c = STATUS_STYLES[status] ?? STATUS_STYLES.confirmed;
+  return <Badge label={statusLabel(status)} background={c.bg} color={c.fg} icon={c.icon} />;
 }
 
-export function Badge({ label, background, color }: { label: string; background: string; color: string }) {
+export function Badge({ label, background, color, icon }: { label: string; background: string; color: string; icon?: IconName }) {
   return (
     <View style={[styles.badge, { backgroundColor: background }]}>
+      {icon && <Ionicons name={icon} size={14} color={color} />}
       <Text style={[styles.badgeText, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
+/** A short note that something is only a demo (longer than a badge). */
+export function DemoNote({ children }: { children: string }) {
+  return (
+    <View style={styles.demoNote}>
+      <Ionicons name="flask-outline" size={16} color={colors.accentText} />
+      <Text style={styles.demoNoteText}>{children}</Text>
     </View>
   );
 }
@@ -268,6 +283,24 @@ const styles = StyleSheet.create({
   bannerTitle: { fontSize: font.body, fontWeight: '700' },
   bannerText: { fontSize: 15, lineHeight: 21 },
 
-  badge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: radius.pill },
+  badge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+  },
   badgeText: { fontSize: 13, fontWeight: '700' },
+  demoNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: radius.sm,
+    backgroundColor: colors.accentSoft,
+  },
+  demoNoteText: { flex: 1, fontSize: 13, lineHeight: 19, fontWeight: '600', color: colors.accentText },
 });

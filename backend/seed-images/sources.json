@@ -1,0 +1,772 @@
+{
+  "products": [
+    {
+      "file": "BK-001.jpg",
+      "subject": "Sourdough Loaf",
+      "title": "Sourdough Bread Loaf.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Sourdough_Bread_Loaf.jpg",
+      "author": "Agelaia",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "BK-002.jpg",
+      "subject": "Butter Croissants",
+      "title": "Croissant, whole.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Croissant,_whole.jpg",
+      "author": "SKopp",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "BK-003.jpg",
+      "subject": "Seeded Bagels",
+      "title": "Bagel with sesame 3.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Bagel_with_sesame_3.jpg",
+      "author": "Shisma",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "BK-004.jpg",
+      "subject": "French Baguette",
+      "title": "Baguette mie.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Baguette_mie.jpg",
+      "author": "Popo le Chien",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "DE-001.jpg",
+      "subject": "Full Cream Milk",
+      "title": "Glass of milk.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Glass_of_milk.jpg",
+      "author": "Santeri Viinamäki",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "DE-002.jpg",
+      "subject": "Free-Range Eggs",
+      "title": "6-Pack-Chicken-Eggs.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:6-Pack-Chicken-Eggs.jpg",
+      "author": "Evan-Amos",
+      "licence": "Public domain",
+      "licenceUrl": null,
+      "changes": "Resized"
+    },
+    {
+      "file": "DE-003.jpg",
+      "subject": "Mature Cheddar",
+      "title": "Somerset-Cheddar.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Somerset-Cheddar.jpg",
+      "author": "J.P.Lon",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+      "changes": "Resized"
+    },
+    {
+      "file": "DE-004.jpg",
+      "subject": "Greek-Style Yogurt",
+      "title": "Yogurt, fruit, granola bowl (34999358091).jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Yogurt,_fruit,_granola_bowl_(34999358091).jpg",
+      "author": "T.Tseng",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "DE-005.jpg",
+      "subject": "Salted Butter",
+      "title": "Block of butter 20200928 080213.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Block_of_butter_20200928_080213.jpg",
+      "author": "Salicyna",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "DR-001.jpg",
+      "subject": "Orange Juice",
+      "title": "Orange juice 1 edit1.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Orange_juice_1_edit1.jpg",
+      "author": "Agency of the United States Department of Agriculture Edited Version by: Arad",
+      "licence": "Public domain",
+      "licenceUrl": null,
+      "changes": "Resized"
+    },
+    {
+      "file": "DR-002.jpg",
+      "subject": "Sparkling Water",
+      "title": "Sparkling Water with Mint in Glass Cup.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Sparkling_Water_with_Mint_in_Glass_Cup.jpg",
+      "author": "Tony Webster",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "DR-003.jpg",
+      "subject": "Ground Coffee",
+      "title": "Coffee powdered.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Coffee_powdered.jpg",
+      "author": "Kulmalukko",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "DR-004.jpg",
+      "subject": "Assam Tea Bags",
+      "title": "Yaupon Tea from teabag in mug - Tea steeping.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Yaupon_Tea_from_teabag_in_mug_-_Tea_steeping.jpg",
+      "author": "Infrogmation of New Orleans",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "DR-005.jpg",
+      "subject": "Cola",
+      "title": "Glass cola.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Glass_cola.jpg",
+      "author": "pic_p_ter",
+      "licence": "Public domain",
+      "licenceUrl": null,
+      "changes": "Resized"
+    },
+    {
+      "file": "FV-001.jpg",
+      "subject": "Bananas",
+      "title": "A Bunch of Bananas displayed by a roadside seller 01.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:A_Bunch_of_Bananas_displayed_by_a_roadside_seller_01.jpg",
+      "author": "Samsule2",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "FV-002.jpg",
+      "subject": "Gala Apples",
+      "title": "2015-02-xx Gala (apple).jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:2015-02-xx_Gala_(apple).jpg",
+      "author": "Hubertl",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "FV-003.jpg",
+      "subject": "Hass Avocados",
+      "title": "Avocado Hass - single and halved.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Avocado_Hass_-_single_and_halved.jpg",
+      "author": "Ivar Leidus",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "FV-004.jpg",
+      "subject": "Vine Tomatoes",
+      "title": "Grape tomatoes on the vine at Ljubljana Central Market.JPG",
+      "source": "https://commons.wikimedia.org/wiki/File:Grape_tomatoes_on_the_vine_at_Ljubljana_Central_Market.JPG",
+      "author": "domdomegg",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "FV-005.jpg",
+      "subject": "Carrots",
+      "title": "Carrot vegetables, April 2023.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Carrot_vegetables,_April_2023.jpg",
+      "author": "Grace789",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "FV-006.jpg",
+      "subject": "Broccoli",
+      "title": "Broccoli DSC00861.png",
+      "source": "https://commons.wikimedia.org/wiki/File:Broccoli_DSC00861.png",
+      "author": "David Monniaux",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+      "changes": "Resized"
+    },
+    {
+      "file": "FV-007.jpg",
+      "subject": "Strawberries",
+      "title": "Garden strawberry (Fragaria × ananassa) single2.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Garden_strawberry_(Fragaria_%C3%97_ananassa)_single2.jpg",
+      "author": "Ivar Leidus",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "FV-008.jpg",
+      "subject": "Lemons",
+      "title": "Lemon - whole and split.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Lemon_-_whole_and_split.jpg",
+      "author": "Ivar Leidus",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "FV-009.jpg",
+      "subject": "Baby Spinach",
+      "title": "Liat Portal for Foodie Disorder - Fresh spinach leaves.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Liat_Portal_for_Foodie_Disorder_-_Fresh_spinach_leaves.jpg",
+      "author": "HaJunkiyada",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "FV-010.jpg",
+      "subject": "Pumpkin",
+      "title": "Pumpkin 2108-1292.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Pumpkin_2108-1292.jpg",
+      "author": "Mozzihh",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "FZ-001.jpg",
+      "subject": "Vanilla Ice Cream",
+      "title": "Day 354 - Photo365 - White (23766206842).jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Day_354_-_Photo365_-_White_(23766206842).jpg",
+      "author": "UnknownNet Photography",
+      "licence": "CC BY-SA 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+      "changes": "Cropped to a square and resized"
+    },
+    {
+      "file": "FZ-002.jpg",
+      "subject": "Margherita Pizza",
+      "title": "Margherita Originale.JPG",
+      "source": "https://commons.wikimedia.org/wiki/File:Margherita_Originale.JPG",
+      "author": "Mario56",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "FZ-003.jpg",
+      "subject": "Mixed Berries",
+      "title": "Blueberries and raspberries in a plate.png",
+      "source": "https://commons.wikimedia.org/wiki/File:Blueberries_and_raspberries_in_a_plate.png",
+      "author": "epSos.de",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "FZ-004.jpg",
+      "subject": "Fish Fingers",
+      "title": "Fish sticks 2024-07-07.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Fish_sticks_2024-07-07.jpg",
+      "author": "GolhaMedia",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "HH-001.jpg",
+      "subject": "Dishwash Liquid",
+      "title": "Joy pot and pan detergent.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Joy_pot_and_pan_detergent.jpg",
+      "author": "NeoBatfreak",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "HH-002.jpg",
+      "subject": "Toilet Tissue",
+      "title": "Toilet paper roll.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Toilet_paper_roll.jpg",
+      "author": "Cmann999",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "HH-003.jpg",
+      "subject": "Kitchen Sponges",
+      "title": "Sponge-viscose.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Sponge-viscose.jpg",
+      "author": "Johan",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+      "changes": "Resized"
+    },
+    {
+      "file": "HH-004.jpg",
+      "subject": "Laundry Detergent",
+      "title": "Laundry detergent pods.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Laundry_detergent_pods.jpg",
+      "author": "ajcespedes",
+      "licence": "CC0",
+      "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "changes": "Resized"
+    },
+    {
+      "file": "MF-001.jpg",
+      "subject": "Chicken Breast Fillets",
+      "title": "Raw chicken slices.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Raw_chicken_slices.jpg",
+      "author": "kakyusei",
+      "licence": "CC0",
+      "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "changes": "Resized"
+    },
+    {
+      "file": "MF-003.jpg",
+      "subject": "Salmon Fillets",
+      "title": "Salmon2.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Salmon2.jpg",
+      "author": "Tiia Monto",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "MF-004.jpg",
+      "subject": "Smoked Bacon",
+      "title": "Two slices of raw bacon and parsley on the wooden board. Two tomatoes next to it.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Two_slices_of_raw_bacon_and_parsley_on_the_wooden_board._Two_tomatoes_next_to_it.jpg",
+      "author": "Shixart1985",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "PA-001.jpg",
+      "subject": "Spaghetti",
+      "title": "Spaghetti spiral, 2008.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Spaghetti_spiral,_2008.jpg",
+      "author": "Paolo Piscolla",
+      "licence": "CC BY-SA 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+      "changes": "Cropped to a square and resized"
+    },
+    {
+      "file": "PA-002.jpg",
+      "subject": "Basmati Rice",
+      "title": "Basmati Rice India, raw.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Basmati_Rice_India,_raw.jpg",
+      "author": "cookbookman17",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "PA-003.jpg",
+      "subject": "Chopped Tomatoes",
+      "title": "Маринованный томат.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:%D0%9C%D0%B0%D1%80%D0%B8%D0%BD%D0%BE%D0%B2%D0%B0%D0%BD%D0%BD%D1%8B%D0%B9_%D1%82%D0%BE%D0%BC%D0%B0%D1%82.jpg",
+      "author": "Pannet",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "PA-004.jpg",
+      "subject": "Extra Virgin Olive Oil",
+      "title": "Bottle of olive oil.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Bottle_of_olive_oil.jpg",
+      "author": "margenauer from Pixabay",
+      "licence": "CC0",
+      "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "changes": "Resized"
+    },
+    {
+      "file": "PA-005.jpg",
+      "subject": "Crunchy Peanut Butter",
+      "title": "Peanut Butter (7104016311).jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Peanut_Butter_(7104016311).jpg",
+      "author": "Denise Krebs from Manama, Bahrain",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+      "changes": "Cropped to a square and resized"
+    },
+    {
+      "file": "PA-006.jpg",
+      "subject": "Wildflower Honey",
+      "title": "Honey spoon.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Honey_spoon.jpg",
+      "author": "Fæ",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Cropped to a square and resized"
+    },
+    {
+      "file": "RD-001.jpg",
+      "subject": "Toor Dal",
+      "title": "Split pigeon peas.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Split_pigeon_peas.jpg",
+      "author": "BaluBFA12",
+      "licence": "CC0",
+      "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "changes": "Cropped to a square and resized"
+    },
+    {
+      "file": "RD-002.jpg",
+      "subject": "Urad Dal, Whole White",
+      "title": "Vigna mungo without skin.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Vigna_mungo_without_skin.jpg",
+      "author": "Thamizhpparithi Maari",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "RD-003.jpg",
+      "subject": "Chana Dal",
+      "title": "Sanagapappu.JPG",
+      "source": "https://commons.wikimedia.org/wiki/File:Sanagapappu.JPG",
+      "author": "Bhaskaranaidu",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Cropped to a square and resized"
+    },
+    {
+      "file": "RD-004.jpg",
+      "subject": "Moong Dal",
+      "title": "Moong Dal.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Moong_Dal.jpg",
+      "author": "Sudeshna Banerjee",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "RD-005.jpg",
+      "subject": "Masoor Dal",
+      "title": "Red lentils - jules.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Red_lentils_-_jules.jpg",
+      "author": "jules / stone soup",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "RD-006.jpg",
+      "subject": "Ponni Boiled Rice (5 kg)",
+      "title": "A closeup of Ponni Rice.JPG",
+      "source": "https://commons.wikimedia.org/wiki/File:A_closeup_of_Ponni_Rice.JPG",
+      "author": "Thamizhpparithi Maari",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "RD-007.jpg",
+      "subject": "Ponni Boiled Rice (25 kg)",
+      "title": "A closeup of Ponni Rice.JPG",
+      "source": "https://commons.wikimedia.org/wiki/File:A_closeup_of_Ponni_Rice.JPG",
+      "author": "Thamizhpparithi Maari",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "RD-009.jpg",
+      "subject": "Idli Rice",
+      "title": "A closeup of Idly Rice.JPG",
+      "source": "https://commons.wikimedia.org/wiki/File:A_closeup_of_Idly_Rice.JPG",
+      "author": "Thamizhpparithi Maari",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Cropped to a square and resized"
+    },
+    {
+      "file": "RD-011.jpg",
+      "subject": "Ragi, Whole",
+      "title": "Food grain finger millet.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Food_grain_finger_millet.jpg",
+      "author": "Sengai Podhuvan",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "RD-012.jpg",
+      "subject": "Ragi Flour",
+      "title": "Ragi millet flour.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Ragi_millet_flour.jpg",
+      "author": "Medhi jyoti",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "SN-001.jpg",
+      "subject": "Salted Potato Chips",
+      "title": "Potato-Chips.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Potato-Chips.jpg",
+      "author": "Evan-Amos",
+      "licence": "Public domain",
+      "licenceUrl": null,
+      "changes": "Resized"
+    },
+    {
+      "file": "SN-002.jpg",
+      "subject": "Dark Chocolate 70%",
+      "title": "Green and Black's dark chocolate bar 2.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Green_and_Black%27s_dark_chocolate_bar_2.jpg",
+      "author": "Mx. Granger",
+      "licence": "CC0",
+      "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "changes": "Resized"
+    },
+    {
+      "file": "SN-003.jpg",
+      "subject": "Chocolate Chip Cookies",
+      "title": "Choc-Chip-Cookie.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Choc-Chip-Cookie.jpg",
+      "author": "Evan-Amos",
+      "licence": "Public domain",
+      "licenceUrl": null,
+      "changes": "Resized"
+    },
+    {
+      "file": "SN-004.jpg",
+      "subject": "Salted Popcorn",
+      "title": "Bowl of Popcorn (Unsplash).jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Bowl_of_Popcorn_(Unsplash).jpg",
+      "author": "Alex Munsell alexmunsell",
+      "licence": "CC0",
+      "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "changes": "Resized"
+    },
+    {
+      "file": "SP-001.jpg",
+      "subject": "Turmeric Powder",
+      "title": "Turmeric Powder on a Spoon - Black Background.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Turmeric_Powder_on_a_Spoon_-_Black_Background.jpg",
+      "author": "formulatehealth",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "SP-002.jpg",
+      "subject": "Red Chilli Powder",
+      "title": "Red Chili Powder (Lall Mirch) (49695826571).jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Red_Chili_Powder_(Lall_Mirch)_(49695826571).jpg",
+      "author": "Ajay Suresh from New York, NY, USA",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "SP-003.jpg",
+      "subject": "Coriander Powder",
+      "title": "Coriander Powder.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Coriander_Powder.jpg",
+      "author": "Gaurav Dhwaj Khadka",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "SP-004.jpg",
+      "subject": "Cumin Seeds",
+      "title": "Dried cumin seeds.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Dried_cumin_seeds.jpg",
+      "author": "Fumikas Sagisavas",
+      "licence": "CC0",
+      "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "changes": "Resized"
+    },
+    {
+      "file": "SP-005.jpg",
+      "subject": "Mustard Seeds",
+      "title": "Black mustard seeds.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Black_mustard_seeds.jpg",
+      "author": "Theredgiant",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "SP-006.jpg",
+      "subject": "Black Pepper, Whole",
+      "title": "Tellicherry Black Peppercorns.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Tellicherry_Black_Peppercorns.jpg",
+      "author": "Misterneedlemouse",
+      "licence": "CC0",
+      "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "changes": "Resized"
+    },
+    {
+      "file": "SP-007.jpg",
+      "subject": "Sambar Powder",
+      "title": "Sambar powder.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Sambar_powder.jpg",
+      "author": "Keerthinellikkalaya",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "SP-008.jpg",
+      "subject": "Rasam Powder",
+      "title": "Rasam powder picture.JPG",
+      "source": "https://commons.wikimedia.org/wiki/File:Rasam_powder_picture.JPG",
+      "author": "Nithyasrm",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "SP-009.jpg",
+      "subject": "Tamarind, Seedless",
+      "title": "Tamarind pulp.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Tamarind_pulp.jpg",
+      "author": "einalem",
+      "licence": "CC BY-SA 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+      "changes": "Resized"
+    }
+  ],
+  "categories": [
+    {
+      "file": "bakery.jpg",
+      "subject": "Bakery",
+      "title": "Sourdough Bread Loaf.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Sourdough_Bread_Loaf.jpg",
+      "author": "Agelaia",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
+      "changes": "Cropped to 4:3 and resized",
+      "copyOf": "BK-001.jpg"
+    },
+    {
+      "file": "dairy-eggs.jpg",
+      "subject": "Dairy & Eggs",
+      "title": "Glass of milk.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Glass_of_milk.jpg",
+      "author": "Santeri Viinamäki",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Cropped to 4:3 and resized",
+      "copyOf": "DE-001.jpg"
+    },
+    {
+      "file": "drinks.jpg",
+      "subject": "Drinks",
+      "title": "Orange juice 1 edit1.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Orange_juice_1_edit1.jpg",
+      "author": "Agency of the United States Department of Agriculture Edited Version by: Arad",
+      "licence": "Public domain",
+      "licenceUrl": null,
+      "changes": "Cropped to 4:3 and resized",
+      "copyOf": "DR-001.jpg"
+    },
+    {
+      "file": "frozen.jpg",
+      "subject": "Frozen",
+      "title": "Frozen peas.JPG",
+      "source": "https://commons.wikimedia.org/wiki/File:Frozen_peas.JPG",
+      "author": "Jina Lee",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+      "changes": "Cropped to 4:3 and resized"
+    },
+    {
+      "file": "fruit-veg.jpg",
+      "subject": "Fruit & Veg",
+      "title": "Vegetables at vegetable market, Havelock Island, Andamans.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Vegetables_at_vegetable_market,_Havelock_Island,_Andamans.jpg",
+      "author": "Vyacheslav Argenberg",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "household.jpg",
+      "subject": "Household",
+      "title": "Cleaning agents - Botzmëttel.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Cleaning_agents_-_Botzm%C3%ABttel.jpg",
+      "author": "Bdx",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "changes": "Cropped to 4:3 and resized"
+    },
+    {
+      "file": "meat-fish.jpg",
+      "subject": "Meat & Fish",
+      "title": "Raw chicken slices.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Raw_chicken_slices.jpg",
+      "author": "kakyusei",
+      "licence": "CC0",
+      "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "changes": "Cropped to 4:3 and resized",
+      "copyOf": "MF-001.jpg"
+    },
+    {
+      "file": "pantry.jpg",
+      "subject": "Pantry",
+      "title": "Bottle of olive oil.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Bottle_of_olive_oil.jpg",
+      "author": "margenauer from Pixabay",
+      "licence": "CC0",
+      "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "changes": "Cropped to 4:3 and resized"
+    },
+    {
+      "file": "personal-care.jpg",
+      "subject": "Personal Care",
+      "title": "Natural Soap Bars (46363900951).jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Natural_Soap_Bars_(46363900951).jpg",
+      "author": "Tony Webster from Minneapolis, Minnesota, United States",
+      "licence": "CC BY 2.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/2.0",
+      "changes": "Resized"
+    },
+    {
+      "file": "rice-dals.jpg",
+      "subject": "Rice, Dals & Grains",
+      "title": "Moong Dal.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Moong_Dal.jpg",
+      "author": "Sudeshna Banerjee",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Cropped to 4:3 and resized",
+      "copyOf": "RD-004.jpg"
+    },
+    {
+      "file": "snacks.jpg",
+      "subject": "Snacks & Sweets",
+      "title": "Choc-Chip-Cookie.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Choc-Chip-Cookie.jpg",
+      "author": "Evan-Amos",
+      "licence": "Public domain",
+      "licenceUrl": null,
+      "changes": "Cropped to 4:3 and resized",
+      "copyOf": "SN-003.jpg"
+    },
+    {
+      "file": "spices.jpg",
+      "subject": "Spices & Masalas",
+      "title": "Spices in an Indian kitchen.JPG",
+      "source": "https://commons.wikimedia.org/wiki/File:Spices_in_an_Indian_kitchen.JPG",
+      "author": "Dharmadhyaksha",
+      "licence": "CC BY-SA 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "changes": "Resized"
+    }
+  ]
+}

@@ -1,37 +1,44 @@
-import { ArrowLeft, ImageOff, LoaderCircle, Save, Trash, Upload } from 'lucide-react'
+import { ArrowLeft, History, ImageOff, LoaderCircle, Save, Trash, Upload } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ErrorState, Field, PageHeader, ProductThumb, Spinner, StockBadge } from '../components/ui'
+import { ErrorState, Field, ManagerOnly, PageHeader, PhotoCredit, ProductThumb, Spinner, StockBadge } from '../components/ui'
+import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import { useToast } from '../context/ToastContext'
 import { ApiError, api } from '../lib/api'
-import { centsToInput, inputToCents } from '../lib/format'
-import type { Category, StaffProduct } from '../lib/types'
+import { centsToInput, inputToCents, MANUAL_STOCK_REASONS } from '../lib/format'
+import type { Category, Paginated, StaffProduct, StockMovement } from '../lib/types'
 import { useAsync } from '../lib/useAsync'
 
 interface FormState {
   name: string
+  nameTa: string
   brand: string
   categoryId: string
   price: string
   unitLabel: string
   sku: string
   description: string
-  icon: string
   isActive: boolean
   stockQuantity: string
   lowStockThreshold: string
 }
 
+/** A photo chosen before the product exists, with where it came from. Uploaded once the product is saved. */
+interface PendingImage {
+  file: File
+  source: string
+}
+
 const EMPTY: FormState = {
   name: '',
+  nameTa: '',
   brand: '',
   categoryId: '',
   price: '',
   unitLabel: 'each',
   sku: '',
   description: '',
-  icon: '',
   isActive: true,
   stockQuantity: '0',
   lowStockThreshold: '10',
@@ -39,13 +46,13 @@ const EMPTY: FormState = {
 
 const toForm = (p: StaffProduct): FormState => ({
   name: p.name,
+  nameTa: p.nameTa ?? '',
   brand: p.brand ?? '',
   categoryId: String(p.categoryId),
   price: centsToInput(p.priceCents),
   unitLabel: p.unitLabel,
   sku: p.sku ?? '',
   description: p.description,
-  icon: p.icon ?? '',
   isActive: p.isActive,
   stockQuantity: String(p.stockQuantity),
   lowStockThreshold: String(p.lowStockThreshold),
@@ -59,6 +66,7 @@ export function ProductFormPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const { store } = useStore()
+  const { isManager } = useAuth()
 
   const categories = useAsync(() => api.get<{ items: Category[] }>('/api/staff/categories').then((r) => r.items), [])
   const product = useAsync(
@@ -70,7 +78,7 @@ export function ProductFormPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [pendingImage, setPendingImage] = useState<File | null>(null)
+  const [pendingImage, setPendingImage] = useState<PendingImage | null>(null)
 
   useEffect(() => {
     if (product.data) setForm(toForm(product.data))
@@ -99,13 +107,13 @@ export function ProductFormPage() {
 
     const body: Record<string, unknown> = {
       name: form.name.trim(),
+      nameTa: form.nameTa.trim() || null,
       brand: form.brand.trim() || null,
       categoryId: Number(form.categoryId),
       priceCents: inputToCents(form.price),
       unitLabel: form.unitLabel.trim(),
       sku: form.sku.trim() || null,
       description: form.description.trim(),
-      icon: form.icon.trim() || null,
       isActive: form.isActive,
       lowStockThreshold: Number(form.lowStockThreshold),
     }
@@ -116,7 +124,7 @@ export function ProductFormPage() {
     try {
       if (isNew) {
         const { product: created } = await api.post<{ product: StaffProduct }>('/api/staff/products', body)
-        if (pendingImage) await uploadImage(created.id, pendingImage)
+        if (pendingImage) await uploadImage(created.id, pendingImage.file, pendingImage.source)
         toast(`"${created.name}" was added`)
         navigate(`/products/${created.id}`, { replace: true })
       } else {
@@ -132,9 +140,10 @@ export function ProductFormPage() {
     }
   }
 
-  async function uploadImage(productId: number, file: File) {
+  async function uploadImage(productId: number, file: File, source: string) {
     const form = new FormData()
     form.append('image', file)
+    form.append('source', source)
     const result = await api.upload<{ product: StaffProduct }>(`/api/staff/products/${productId}/image`, form)
     return result.product
   }
@@ -152,10 +161,16 @@ export function ProductFormPage() {
         title={isNew ? 'New product' : current?.name}
         subtitle={isNew ? 'Fill in the details below. You can add a photo now or later.' : `Last updated ${new Date(current!.updatedAt).toLocaleString()}`}
       />
+      {!isManager && (
+        <ManagerOnly>
+          Only a manager can change names, prices and other details. You can update the photo and the stock (with a reason).
+        </ManagerOnly>
+      )}
 
       <form className="form-grid" onSubmit={handleSubmit} noValidate>
         <section className="card form-main">
           <h2>Details</h2>
+          <fieldset disabled={!isManager} className="plain-fieldset">
           {formError && (
             <div className="alert alert-error" role="alert">
               {formError}
@@ -163,6 +178,9 @@ export function ProductFormPage() {
           )}
           <Field label="Name" htmlFor="name" error={errors.name} required>
             <input id="name" value={form.name} maxLength={120} onChange={(e) => set('name', e.target.value)} />
+          </Field>
+          <Field label="Tamil name" htmlFor="name-ta" error={errors.nameTa} hint="Shown when customers use the app in Tamil, e.g. துவரம் பருப்பு">
+            <input id="name-ta" lang="ta" value={form.nameTa} maxLength={120} onChange={(e) => set('nameTa', e.target.value)} />
           </Field>
           <Field label="Brand" htmlFor="brand" error={errors.brand} hint='Optional, e.g. "Surf Excel", "Maggi" or "Store packed"'>
             <input id="brand" value={form.brand} maxLength={60} onChange={(e) => set('brand', e.target.value)} />
@@ -173,7 +191,7 @@ export function ProductFormPage() {
                 <option value="">Choose…</option>
                 {categories.data?.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.icon} {c.name}
+                    {c.name}
                     {c.isActive ? '' : ' (hidden)'}
                   </option>
                 ))}
@@ -227,8 +245,9 @@ export function ProductFormPage() {
               <span className="muted small">Untick to deactivate: the product is hidden from the app but kept for past orders.</span>
             </span>
           </label>
+          </fieldset>
           <div className="form-actions">
-            <button className="btn btn-primary" type="submit" disabled={saving}>
+            <button className="btn btn-primary" type="submit" disabled={saving || !isManager}>
               {saving ? <LoaderCircle className="spin" size={16} aria-hidden /> : <Save size={16} aria-hidden />}
               {isNew ? 'Add product' : 'Save changes'}
             </button>
@@ -241,14 +260,13 @@ export function ProductFormPage() {
         <div className="side-stack">
           <ImageCard
             product={current ?? null}
-            icon={form.icon}
-            onIconChange={(value) => set('icon', value)}
             pendingImage={pendingImage}
             onPendingImage={setPendingImage}
             onUploaded={(updated) => product.setData(updated)}
             upload={uploadImage}
           />
           {current && <StockCard product={current} onUpdated={(updated) => product.setData(updated)} />}
+          {current && <StockHistoryCard product={current} />}
         </div>
       </form>
     </>
@@ -257,32 +275,42 @@ export function ProductFormPage() {
 
 function ImageCard({
   product,
-  icon,
-  onIconChange,
   pendingImage,
   onPendingImage,
   onUploaded,
   upload,
 }: {
   product: StaffProduct | null
-  icon: string
-  onIconChange: (value: string) => void
-  pendingImage: File | null
-  onPendingImage: (file: File | null) => void
+  pendingImage: PendingImage | null
+  onPendingImage: (image: PendingImage | null) => void
   onUploaded: (product: StaffProduct) => void
-  upload: (productId: number, file: File) => Promise<StaffProduct>
+  upload: (productId: number, file: File, source: string) => Promise<StaffProduct>
 }) {
   const toast = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
+  const sourceRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [source, setSource] = useState('')
+  const [sourceError, setSourceError] = useState<string | undefined>()
+  const pendingFile = pendingImage?.file
 
   useEffect(() => {
-    if (!pendingImage) return setPreviewUrl(null)
-    const url = URL.createObjectURL(pendingImage)
+    if (!pendingFile) return setPreviewUrl(null)
+    const url = URL.createObjectURL(pendingFile)
     setPreviewUrl(url)
     return () => URL.revokeObjectURL(url)
-  }, [pendingImage])
+  }, [pendingFile])
+
+  // We only show photos we may use, so staff say where each one is from before choosing it.
+  function chooseFile() {
+    if (!source.trim()) {
+      setSourceError('Say where this photo is from before choosing it.')
+      sourceRef.current?.focus()
+      return
+    }
+    inputRef.current?.click()
+  }
 
   async function handleFile(file: File | undefined) {
     if (!file) return
@@ -290,17 +318,20 @@ function ImageCard({
       toast('Please choose a JPG, PNG or WebP image.', 'error')
       return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast('Images must be 5 MB or smaller.', 'error')
+    if (file.size > 8 * 1024 * 1024) {
+      toast('Images must be 8 MB or smaller.', 'error')
       return
     }
     if (!product) {
-      onPendingImage(file) // uploaded after the product is created
+      onPendingImage({ file, source: source.trim() }) // uploaded after the product is created
+      setSource('')
+      if (inputRef.current) inputRef.current.value = ''
       return
     }
     setBusy(true)
     try {
-      onUploaded(await upload(product.id, file))
+      onUploaded(await upload(product.id, file, source.trim()))
+      setSource('')
       toast('Photo updated')
     } catch (err) {
       toast((err as Error).message, 'error')
@@ -333,7 +364,7 @@ function ImageCard({
         {previewUrl ? (
           <img src={previewUrl} alt="Selected product" />
         ) : (
-          <ProductThumb imageUrl={product?.imageUrl ?? null} icon={icon || product?.categoryIcon || '🛒'} size={160} />
+          <ProductThumb imageUrl={product?.imageUrl ?? null} size={160} />
         )}
       </div>
       <input
@@ -344,8 +375,27 @@ function ImageCard({
         id="image-input"
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
+      {product?.imageUrl && !previewUrl && <PhotoCredit credit={product.imageCredit} />}
+      {pendingImage && <p className="hint">Source: {pendingImage.source}</p>}
+      <Field
+        label={hasImage ? 'Where is the new photo from?' : 'Where is this photo from?'}
+        htmlFor="image-source"
+        hint="For example “Taken in our shop, Oct 2026” or “Supplier pack shot, used with permission”."
+        error={sourceError}
+      >
+        <input
+          ref={sourceRef}
+          id="image-source"
+          value={source}
+          maxLength={200}
+          onChange={(e) => {
+            setSource(e.target.value)
+            setSourceError(undefined)
+          }}
+        />
+      </Field>
       <div className="button-row">
-        <button type="button" className="btn btn-secondary" onClick={() => inputRef.current?.click()} disabled={busy}>
+        <button type="button" className="btn btn-secondary" onClick={chooseFile} disabled={busy}>
           {busy ? <LoaderCircle className="spin" size={16} aria-hidden /> : <Upload size={16} aria-hidden />}
           {hasImage ? 'Replace photo' : 'Upload photo'}
         </button>
@@ -357,14 +407,12 @@ function ImageCard({
       </div>
       {!hasImage && (
         <p className="alert alert-info" role="note">
-          No photo yet — customers see a “Photo coming soon” placeholder. Use a photo you're allowed to use, such as one
-          you take of the pack on your shelf.
+          Image needed — customers see a clearly labelled “Image needed” placeholder until a photo is added. Take a photo
+          of the pack on your shelf, or use one you have permission to use. Don't copy photos from Google or shopping
+          websites.
         </p>
       )}
-      <p className="hint">JPG, PNG or WebP up to 5 MB. Square photos look best.</p>
-      <Field label="Emoji icon (used when there is no photo)" htmlFor="icon" hint="Optional, e.g. 🍎">
-        <input id="icon" value={icon} maxLength={16} onChange={(e) => onIconChange(e.target.value)} className="emoji-input" />
-      </Field>
+      <p className="hint">JPG, PNG or WebP up to 8 MB. It is resized and compressed automatically. Square photos look best.</p>
     </section>
   )
 }
@@ -372,6 +420,8 @@ function ImageCard({
 function StockCard({ product, onUpdated }: { product: StaffProduct; onUpdated: (p: StaffProduct) => void }) {
   const toast = useToast()
   const [amount, setAmount] = useState('')
+  const [reason, setReason] = useState<(typeof MANUAL_STOCK_REASONS)[number]['value']>('delivery_received')
+  const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
 
   async function adjust(mode: 'add' | 'remove' | 'set') {
@@ -380,12 +430,18 @@ function StockCard({ product, onUpdated }: { product: StaffProduct; onUpdated: (
       toast('Enter a whole number first.', 'error')
       return
     }
-    const body = mode === 'set' ? { quantity: value } : { adjustBy: mode === 'add' ? value : -value }
+    const why = mode === 'set' ? 'stock_count' : mode === 'remove' && reason === 'delivery_received' ? 'adjustment' : reason
+    const body = {
+      ...(mode === 'set' ? { quantity: value } : { adjustBy: mode === 'add' ? value : -value }),
+      reason: why,
+      note: note.trim() || undefined,
+    }
     setBusy(true)
     try {
       const result = await api.post<{ product: StaffProduct }>(`/api/staff/products/${product.id}/stock`, body)
       onUpdated(result.product)
       setAmount('')
+      setNote('')
       toast(`Stock is now ${result.product.stockQuantity}`)
     } catch (err) {
       toast((err as Error).message, 'error')
@@ -404,6 +460,18 @@ function StockCard({ product, onUpdated }: { product: StaffProduct; onUpdated: (
       <Field label="Quantity" htmlFor="stock-amount" hint="Add a delivery, remove damaged items, or set the exact count after a stock check.">
         <input id="stock-amount" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 24" />
       </Field>
+      <Field label="Reason" htmlFor="stock-reason" hint="Every change is saved in the stock history with your name.">
+        <select id="stock-reason" value={reason} onChange={(e) => setReason(e.target.value as typeof reason)}>
+          {MANUAL_STOCK_REASONS.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Note (optional)" htmlFor="stock-note" hint='e.g. "Invoice 1042" or "2 packets torn"'>
+        <input id="stock-note" value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} />
+      </Field>
       <div className="button-row">
         <button type="button" className="btn btn-primary btn-sm" onClick={() => adjust('add')} disabled={busy}>
           + Add
@@ -415,6 +483,56 @@ function StockCard({ product, onUpdated }: { product: StaffProduct; onUpdated: (
           Set exact count
         </button>
       </div>
+    </section>
+  )
+}
+
+/** The last few stock changes for this product, with who made them and why. */
+function StockHistoryCard({ product }: { product: StaffProduct }) {
+  const { dateTime } = useStore()
+  const history = useAsync(
+    () => api.get<Paginated<StockMovement>>(`/api/staff/products/${product.id}/history?pageSize=8`),
+    [product.id, product.stockQuantity],
+  )
+  return (
+    <section className="card">
+      <h2>
+        <History size={16} aria-hidden /> Stock history
+      </h2>
+      {history.error && !history.data ? (
+        <ErrorState error={history.error} onRetry={history.reload} />
+      ) : !history.data ? (
+        <Spinner />
+      ) : history.data.items.length === 0 ? (
+        <p className="muted small">No changes recorded yet.</p>
+      ) : (
+        <ul className="event-list">
+          {history.data.items.map((m) => (
+            <li key={m.id}>
+              <span className="small">
+                <strong className={m.change < 0 ? 'error-text' : ''}>
+                  {m.change > 0 ? '+' : ''}
+                  {m.change}
+                </strong>{' '}
+                → {m.quantityAfter} · {m.reasonLabel}
+                {m.orderNumber && (
+                  <>
+                    {' '}
+                    · <Link to={`/orders/${m.orderId}`}>{m.orderNumber}</Link>
+                  </>
+                )}
+              </span>
+              {m.note && <span className="small">{m.note}</span>}
+              <span className="muted small">
+                {m.userName ?? 'System'} · {dateTime(m.createdAt)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Link to={`/stock-history?productId=${product.id}`} className="btn btn-link">
+        Full history →
+      </Link>
     </section>
   )
 }

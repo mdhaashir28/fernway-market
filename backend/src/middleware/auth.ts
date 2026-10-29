@@ -9,7 +9,15 @@ import { config } from '../config.js';
 import { pool } from '../db/pool.js';
 import { forbidden, unauthorized } from '../lib/errors.js';
 
-export type Role = 'customer' | 'staff';
+/**
+ * customer = shoppers.
+ * staff    = pickers/cashiers: orders, substitutions, stock counts, photos, support.
+ * manager  = store owner/manager: everything staff can do, plus prices and products,
+ *            categories, delivery zones, store hours, offers, staff accounts and refunds.
+ */
+export type Role = 'customer' | 'staff' | 'manager';
+
+export const isStaffRole = (role: Role | undefined): role is 'staff' | 'manager' => role === 'staff' || role === 'manager';
 
 export interface AuthUser {
   id: number;
@@ -17,7 +25,13 @@ export interface AuthUser {
   name: string;
   phone: string | null;
   role: Role;
+  preferredLanguage: 'en' | 'ta';
+  /** Agreed to receive order updates on WhatsApp. */
+  whatsappOptIn: boolean;
 }
+
+/** Columns for AuthUser (users table). */
+export const AUTH_USER_COLUMNS = `id, email, name, phone, role, preferred_language AS "preferredLanguage", whatsapp_opt_in AS "whatsappOptIn"`;
 
 // Lets TypeScript know that requests can carry the logged-in user.
 declare global {
@@ -49,21 +63,27 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
   }
 
   const { rows } = await pool.query<AuthUser & { isActive: boolean }>(
-    'SELECT id, email, name, phone, role, is_active AS "isActive" FROM users WHERE id = $1',
+    `SELECT ${AUTH_USER_COLUMNS}, is_active AS "isActive" FROM users WHERE id = $1`,
     [userId],
   );
   const user = rows[0];
   if (!user || !user.isActive) throw unauthorized('Your account is not active. Please log in again.');
 
-  req.user = { id: user.id, email: user.email, name: user.name, phone: user.phone, role: user.role };
+  const { isActive: _active, ...authUser } = user;
+  req.user = authUser;
   next();
 }
 
-export function requireRole(role: Role) {
-  return (req: Request, _res: Response, next: NextFunction) => {
-    if (req.user?.role !== role) throw forbidden(role === 'staff' ? 'Staff access only.' : undefined);
-    next();
-  };
+/** Any store account (staff or manager). */
+export function requireStaff(req: Request, _res: Response, next: NextFunction) {
+  if (!isStaffRole(req.user?.role)) throw forbidden('Staff access only.');
+  next();
+}
+
+/** Store managers only. */
+export function requireManager(req: Request, _res: Response, next: NextFunction) {
+  if (req.user?.role !== 'manager') throw forbidden('Only a store manager can do that.');
+  next();
 }
 
 /** Returns the logged-in user (use only on routes protected by requireAuth). */

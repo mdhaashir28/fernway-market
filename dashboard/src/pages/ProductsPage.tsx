@@ -1,6 +1,7 @@
 import { ImageOff, Pencil, Plus, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
+import { useAuth } from '../context/AuthContext'
 import { EmptyState, ErrorState, PageHeader, Pagination, ProductThumb, Spinner, StockBadge } from '../components/ui'
 import { useStore } from '../context/StoreContext'
 import { api, queryString } from '../lib/api'
@@ -9,6 +10,7 @@ import { useAsync, useDebounced } from '../lib/useAsync'
 
 export function ProductsPage() {
   const { money } = useStore()
+  const { isManager } = useAuth()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const categoryId = params.get('categoryId') ?? ''
@@ -46,9 +48,11 @@ export function ProductsPage() {
         title="Products"
         subtitle="Add products, change prices and photos, and hide items you no longer sell."
         actions={
-          <Link to="/products/new" className="btn btn-primary">
-            <Plus size={16} aria-hidden /> New product
-          </Link>
+          isManager && (
+            <Link to="/products/new" className="btn btn-primary">
+              <Plus size={16} aria-hidden /> New product
+            </Link>
+          )
         }
       />
 
@@ -69,7 +73,7 @@ export function ProductsPage() {
             <option value="">All categories</option>
             {categories.data?.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.icon} {c.name}
+                {c.name}
               </option>
             ))}
           </select>
@@ -88,7 +92,7 @@ export function ProductsPage() {
         </label>
         <label className="checkbox">
           <input type="checkbox" checked={missingPhoto} onChange={(e) => update({ missingPhoto: String(e.target.checked) })} />
-          Missing photo only
+          Image needed only
         </label>
       </div>
 
@@ -102,9 +106,11 @@ export function ProductsPage() {
             title="No products found"
             message="Try a different search or filter, or add a new product."
             action={
-              <Link to="/products/new" className="btn btn-primary">
-                <Plus size={16} aria-hidden /> New product
-              </Link>
+              isManager && (
+                <Link to="/products/new" className="btn btn-primary">
+                  <Plus size={16} aria-hidden /> New product
+                </Link>
+              )
             }
           />
         ) : (
@@ -128,17 +134,18 @@ export function ProductsPage() {
                     <tr key={p.id} onClick={() => navigate(`/products/${p.id}`)} className={p.isActive ? '' : 'row-muted'}>
                       <td>
                         <div className="product-cell">
-                          <ProductThumb imageUrl={p.imageUrl} icon={p.icon || p.categoryIcon} />
+                          <ProductThumb imageUrl={p.imageUrl} />
                           <div>
                             <div className="strong">{p.name}</div>
+                            {p.nameTa && <div className="small" lang="ta">{p.nameTa}</div>}
                             <div className="muted small">
                               {p.brand && `${p.brand} · `}
                               {p.unitLabel}
                               {p.sku && ` · ${p.sku}`}
                             </div>
                             {!p.imageUrl && (
-                              <span className="badge badge-muted badge-small" title="Customers see a “Photo coming soon” placeholder">
-                                <ImageOff size={12} aria-hidden /> No photo
+                              <span className="badge badge-muted badge-small" title="Customers see a clearly labelled “Image needed” placeholder">
+                                <ImageOff size={12} aria-hidden /> Image needed
                               </span>
                             )}
                           </div>
@@ -163,7 +170,7 @@ export function ProductsPage() {
                           onClick={(e) => e.stopPropagation()}
                           aria-label={`Edit ${p.name}`}
                         >
-                          <Pencil size={14} aria-hidden /> Edit
+                          <Pencil size={14} aria-hidden /> {isManager ? 'Edit' : 'Open'}
                         </Link>
                       </td>
                     </tr>

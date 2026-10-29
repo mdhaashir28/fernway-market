@@ -1,25 +1,33 @@
-# Render "Blueprint": creates the database, API and staff dashboard in one go.
-# How to use it: see DEPLOY.md. Docs: https://render.com/docs/blueprint-spec
+# Render "Blueprint" for the Meeranji Supermarket DEMO: creates the database, the API,
+# the staff dashboard and the customer web shop in one go.
+# How to use it: DEPLOY.md → "Deploy the demo on Render". Spec: https://render.com/docs/blueprint-spec
 #
-# If Render gives a service a different web address than the ones below
-# (e.g. because the name is taken), update VITE_API_URL and CORS_ORIGINS
-# in the Render dashboard and redeploy.
+# Safe by default:
+#   - UPI payments: Razorpay TEST mode once you add test keys, a labelled practice page until then.
+#     Live (real money) keys are refused unless RAZORPAY_ALLOW_LIVE_PAYMENTS is "true". Leave it "false".
+#   - WhatsApp: demo mode. Messages are recorded and shown in the dashboard's WhatsApp log, never sent.
+#   - Secrets are never in this file. "generateValue" makes Render create a random value, and
+#     "sync: false" makes Render ask you for the value once, when the Blueprint is first created.
+#
+# If Render gives a service a different web address than the ones below (e.g. because the name
+# is taken), update CORS_ORIGINS, VITE_API_URL and EXPO_PUBLIC_API_URL in the Render dashboard.
 
 databases:
-  - name: fernway-db
+  - name: meeranji-db
     plan: free
-    databaseName: fernway_market
-    user: fernway
+    databaseName: meeranji_market
+    user: meeranji
 
 services:
   # --- API (Node.js) --------------------------------------------------------
   - type: web
-    name: fernway-api
+    name: meeranji-api
     runtime: node
     plan: free
     rootDir: backend
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
+    # Answers 200 when the API and database are working, 503 when the database is unreachable.
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
@@ -28,17 +36,17 @@ services:
         value: production
       - key: DATABASE_URL
         fromDatabase:
-          name: fernway-db
+          name: meeranji-db
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      # The staff dashboard and customer web shop below.
       - key: CORS_ORIGINS
-        value: https://fernway-dashboard.onrender.com
-      # Free Render servers lose their disk on every deploy, so keep photos in the database.
+        value: https://meeranji-staff.onrender.com,https://meeranji-shop.onrender.com
+      # Free Render servers lose their disk on every deploy, so keep uploaded photos in the database.
       - key: IMAGE_STORAGE
         value: database
-      # Demo deployment: load the sample products, orders and two sample accounts.
-      # Set to "false" (and remove the SEED_* variables) for a real store.
+      # Demo: load the sample products, orders and two sample accounts.
       - key: LOAD_SAMPLE_DATA
         value: "true"
       - key: SEED_STAFF_EMAIL
@@ -59,13 +67,42 @@ services:
         value: INR
       - key: STORE_TIMEZONE
         value: Asia/Kolkata
+      # PUBLIC_API_URL is not needed: the API uses Render's own address (RENDER_EXTERNAL_URL).
+
+      # --- UPI payments: Razorpay TEST mode --------------------------------------
+      # "razorpay" + rzp_test_ keys = Razorpay's test checkout, no real money.
+      # Without keys the API falls back to the labelled practice page (demo).
+      - key: PAYMENTS_MODE
+        value: razorpay
+      - key: RAZORPAY_KEY_ID          # rzp_test_… from Razorpay Dashboard (Test Mode) → API Keys
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET  # the secret you type when creating the test-mode webhook
+        sync: false
+      # Keep "false" for the demo. "true" would let rzp_live_ keys charge customers real money.
+      - key: RAZORPAY_ALLOW_LIVE_PAYMENTS
+        value: "false"
+      - key: PAYMENT_TIMEOUT_MINUTES
+        value: "15"
+
+      # --- WhatsApp order updates --------------------------------------------------
+      # demo = recorded and shown in the dashboard's WhatsApp log, never sent.
+      # Real sending (cloud_api) also needs WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID,
+      # WHATSAPP_APP_SECRET and WHATSAPP_WEBHOOK_VERIFY_TOKEN, added by hand in Render →
+      # meeranji-api → Environment, and only after the Meta setup in docs/INTEGRATIONS.md.
+      - key: WHATSAPP_MODE
+        value: demo
 
   # --- Staff dashboard (static website) ---------------------------------------
   - type: web
-    name: fernway-dashboard
+    name: meeranji-staff
     runtime: static
     buildCommand: cd dashboard && npm ci && npm run build
     staticPublishPath: ./dashboard/dist
+    buildFilter:
+      paths:
+        - dashboard/**
     routes:
       # Send every page address to the app, so refreshing e.g. /orders/5 works.
       - type: rewrite
@@ -75,4 +112,23 @@ services:
       - key: NODE_VERSION
         value: "22"
       - key: VITE_API_URL
-        value: https://fernway-api.onrender.com
+        value: https://meeranji-api.onrender.com
+
+  # --- Customer web shop (the Expo app, built for the web) ----------------------
+  - type: web
+    name: meeranji-shop
+    runtime: static
+    buildCommand: cd mobile && npm ci && node scripts/check-api-url.mjs && npx expo export --platform web
+    staticPublishPath: ./mobile/dist
+    buildFilter:
+      paths:
+        - mobile/**
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: EXPO_PUBLIC_API_URL
+        value: https://meeranji-api.onrender.com

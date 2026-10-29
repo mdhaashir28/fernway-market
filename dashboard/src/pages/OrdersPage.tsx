@@ -1,16 +1,16 @@
 import { RefreshCw, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import { EmptyState, ErrorState, FulfillmentBadge, PageHeader, Pagination, Spinner, StatusBadge } from '../components/ui'
+import { EmptyState, ErrorState, FulfillmentBadge, PageHeader, Pagination, PaymentBadge, Spinner, StatusBadge } from '../components/ui'
 import { useStore } from '../context/StoreContext'
 import { api, queryString } from '../lib/api'
-import { PAYMENT_STATUS_LABELS, STATUS_LABELS, timeAgo } from '../lib/format'
+import { STATUS_LABELS, timeAgo } from '../lib/format'
 import type { OrderStatus, OrderSummary, Paginated } from '../lib/types'
 import { useAsync, useDebounced } from '../lib/useAsync'
 
 const STATUS_TABS: { value: string; label: string }[] = [
   { value: 'open', label: 'Open' },
-  ...(['pending', 'preparing', 'ready_for_pickup', 'out_for_delivery', 'completed', 'cancelled'] as OrderStatus[]).map((s) => ({
+  ...(['confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery', 'awaiting_payment', 'completed', 'cancelled'] as OrderStatus[]).map((s) => ({
     value: s,
     label: STATUS_LABELS[s],
   })),
@@ -176,8 +176,11 @@ export function OrdersTable({ orders }: { orders: OrderSummary[] }) {
               </td>
               <td className="num">{money(order.totalCents)}</td>
               <td>
-                <span className={`badge pay-${order.paymentStatus}`}>{PAYMENT_STATUS_LABELS[order.paymentStatus]}</span>
-                {order.paymentMethod === 'demo_card' && <div className="muted small">Demo payment</div>}
+                <PaymentBadge status={order.paymentStatus} />
+                <div className="muted small">{order.paymentMethod === 'upi' ? 'UPI' : order.paymentMethod === 'demo_card' ? 'Demo card' : 'On delivery / collection'}</div>
+                {order.status === 'awaiting_payment' && order.paymentDueBy && (
+                  <div className="muted small">Pay by {new Date(order.paymentDueBy).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                )}
               </td>
               <td>
                 <StatusBadge status={order.status} />

@@ -1,111 +1,12 @@
-// End-to-end API tests. They run against a SEPARATE database named
-// "<your database>_test", which is wiped at the start of every run.
+// End-to-end API tests: accounts, catalogue, checkout, order lifecycle and
+// staff catalogue management. Set-up (test database, helpers) is in setup.ts.
 // Run with:  npm test   (the database server must be running)
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import type { Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
-import dotenv from 'dotenv';
-import pg from 'pg';
+import { api, baseUrl, firstAvailableSlotId, login, productIdBySku, startTestServer, stockOf, stopTestServer } from './setup.js';
 
-// ---------------------------------------------------------------------------
-// Point the app at the test database BEFORE any app code is loaded.
-// ---------------------------------------------------------------------------
-const projectRoot = path.resolve(import.meta.dirname, '..', '..');
-const envFile = path.join(projectRoot, '.env');
-const fileEnv = fs.existsSync(envFile) ? dotenv.parse(fs.readFileSync(envFile)) : {};
-const baseUrl = new URL(process.env.DATABASE_URL ?? fileEnv.DATABASE_URL);
-const testDbName = `${baseUrl.pathname.slice(1)}_test`;
-const testDbUrl = new URL(baseUrl);
-testDbUrl.pathname = `/${testDbName}`;
-
-Object.assign(process.env, {
-  NODE_ENV: 'test',
-  DATABASE_URL: testDbUrl.toString(),
-  JWT_SECRET: 'test-secret-that-is-long-enough-123',
-  PICKUP_DAYS_AHEAD: '3',
-  PICKUP_SLOT_CAPACITY: '6',
-  SEED_STAFF_EMAIL: 'staff@test.local',
-  SEED_STAFF_PASSWORD: 'staff-password-123',
-  SEED_CUSTOMER_EMAIL: 'customer@test.local',
-  SEED_CUSTOMER_PASSWORD: 'customer-password-123',
-  STORE_PHONE: '9789562928, 9003071616',
-});
-
-let server: Server;
-let base = '';
-let closeDb: () => Promise<void>;
-
-interface ApiResult {
-  status: number;
-  body: any; // JSON from the API — tests check the shape themselves
-}
-
-async function api(method: string, url: string, options: { token?: string; body?: unknown; form?: FormData } = {}): Promise<ApiResult> {
-  const headers: Record<string, string> = {};
-  if (options.token) headers.Authorization = `Bearer ${options.token}`;
-  let body: FormData | string | undefined;
-  if (options.form) body = options.form;
-  else if (options.body !== undefined) {
-    headers['Content-Type'] = 'application/json';
-    body = JSON.stringify(options.body);
-  }
-  const res = await fetch(`${base}${url}`, { method, headers, body });
-  const text = await res.text();
-  return { status: res.status, body: text ? JSON.parse(text) : null };
-}
-
-async function login(email: string, password: string): Promise<string> {
-  const res = await api('POST', '/api/auth/login', { body: { email, password } });
-  assert.equal(res.status, 200, JSON.stringify(res.body));
-  return res.body.token;
-}
-
-async function productIdBySku(sku: string, staffToken: string): Promise<number> {
-  const res = await api('GET', `/api/staff/products?search=${sku}`, { token: staffToken });
-  return res.body.items.find((p: { sku: string }) => p.sku === sku).id;
-}
-
-async function stockOf(productId: number, staffToken: string): Promise<number> {
-  const res = await api('GET', `/api/staff/products/${productId}`, { token: staffToken });
-  return res.body.product.stockQuantity;
-}
-
-async function firstAvailableSlotId(): Promise<number> {
-  const res = await api('GET', '/api/pickup-slots');
-  const slot = res.body.items.find((s: { isAvailable: boolean }) => s.isAvailable);
-  assert.ok(slot, 'expected at least one available pickup slot');
-  return slot.id;
-}
-
-before(async () => {
-  // Create (or wipe) the test database.
-  const admin = new pg.Client({ connectionString: Object.assign(new URL(baseUrl), { pathname: '/postgres' }).toString() });
-  await admin.connect();
-  const exists = await admin.query('SELECT 1 FROM pg_database WHERE datname = $1', [testDbName]);
-  if (!exists.rowCount) await admin.query(`CREATE DATABASE "${testDbName}"`);
-  await admin.end();
-
-  const { pool } = await import('../src/db/pool.js');
-  await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
-  const { runMigrations } = await import('../src/db/migrations.js');
-  const { seedDatabase } = await import('../src/db/seed.js');
-  await runMigrations(() => {});
-  await seedDatabase(() => {});
-
-  const { createApp } = await import('../src/app.js');
-  server = createApp().listen(0);
-  await new Promise((resolve) => server.once('listening', resolve));
-  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  closeDb = () => pool.end();
-});
-
-after(async () => {
-  await new Promise((resolve) => server?.close(resolve));
-  await closeDb?.();
-});
+before(startTestServer);
+after(stopTestServer);
 
 // ---------------------------------------------------------------------------
 describe('accounts', () => {
@@ -150,7 +51,7 @@ describe('accounts', () => {
       assert.equal(old.status, 401, 'the old password stops working');
       const fresh = await api('POST', '/api/auth/login', { body: { email: 'STAFF@test.local ', password: 'NewStaffPassword42' } });
       assert.equal(fresh.status, 200, 'the configured password works (email case and spaces do not matter)');
-      assert.equal(fresh.body.user.role, 'staff');
+      assert.equal(fresh.body.user.role, 'manager', 'the sample store account is the store manager');
     } finally {
       config.SEED_STAFF_PASSWORD = original;
       await syncSampleAccounts(() => {});
@@ -412,9 +313,9 @@ describe('order lifecycle', () => {
     assert.equal(slotAfter.bookedCount, slotBefore.bookedCount - 1);
   });
 
-  it('only lets staff cancel orders that are being prepared, and requires a reason', async () => {
-    const order = await placeOrder('delivery', 'demo_card');
-    assert.equal(order.paymentStatus, 'paid');
+  it('only lets the store cancel orders that are being prepared, and requires a reason', async () => {
+    const order = await placeOrder('delivery');
+    assert.equal(order.status, 'confirmed');
     await api('PATCH', `/api/staff/orders/${order.id}/status`, { token: staff, body: { status: 'preparing' } });
 
     const byCustomer = await api('POST', `/api/orders/${order.id}/cancel`, { token: customer, body: {} });
@@ -426,7 +327,7 @@ describe('order lifecycle', () => {
     const byStaff = await api('POST', `/api/staff/orders/${order.id}/cancel`, { token: staff, body: { reason: 'Customer phoned to cancel' } });
     assert.equal(byStaff.body.order.status, 'cancelled');
     assert.equal(byStaff.body.order.cancelReason, 'Customer phoned to cancel');
-    assert.equal(byStaff.body.order.paymentStatus, 'refunded');
+    assert.equal(byStaff.body.order.paymentStatus, 'unpaid');
   });
 
   it("hides other customers' orders", async () => {
@@ -504,12 +405,13 @@ describe('staff catalogue management', () => {
     const res = await api('POST', `/api/staff/products/${id}/image`, { token: staff, form });
     assert.equal(res.status, 200, JSON.stringify(res.body));
     const imageUrl: string = res.body.product.imageUrl;
-    assert.match(imageUrl, /^\/uploads\/products\/.+\.png$/);
+    // Every upload is optimised for phones and stored as a compressed JPEG.
+    assert.match(imageUrl, /^\/uploads\/products\/.+\.jpg$/);
     assert.ok(!(await missingPhoto()).includes(id), 'no longer missing a photo');
 
-    const served = await fetch(`${base}${imageUrl}`);
+    const served = await fetch(`${baseUrl()}${imageUrl}`);
     assert.equal(served.status, 200);
-    assert.equal(served.headers.get('content-type'), 'image/png');
+    assert.equal(served.headers.get('content-type'), 'image/jpeg');
 
     const fake = new FormData();
     fake.append('image', new Blob(['<script>alert(1)</script>'], { type: 'image/png' }), 'evil.png');
@@ -529,13 +431,14 @@ describe('staff catalogue management', () => {
       assert.equal(stored.status, 200, JSON.stringify(stored.body));
       const dbUrl: string = stored.body.product.imageUrl;
       assert.match(dbUrl, /^\/api\/images\/\d+$/);
-      const fromDb = await fetch(`${base}${dbUrl}`);
+      const fromDb = await fetch(`${baseUrl()}${dbUrl}`);
       assert.equal(fromDb.status, 200);
-      assert.equal(fromDb.headers.get('content-type'), 'image/png');
-      assert.deepEqual(Buffer.from(await fromDb.arrayBuffer()), png);
+      assert.equal(fromDb.headers.get('content-type'), 'image/jpeg');
+      const bytes = Buffer.from(await fromDb.arrayBuffer());
+      assert.deepEqual([...bytes.subarray(0, 3)], [0xff, 0xd8, 0xff], 'a real JPEG');
 
       await api('DELETE', `/api/staff/products/${id}/image`, { token: staff });
-      assert.equal((await fetch(`${base}${dbUrl}`)).status, 404, 'removed photos are deleted from the database');
+      assert.equal((await fetch(`${baseUrl()}${dbUrl}`)).status, 404, 'removed photos are deleted from the database');
     } finally {
       config.IMAGE_STORAGE = 'disk';
     }
@@ -544,13 +447,13 @@ describe('staff catalogue management', () => {
   it('serves the sample photos that ship with the code', async () => {
     const bananas = (await api('GET', '/api/products?search=bananas')).body.items[0];
     assert.equal(bananas.imageUrl, '/sample-images/FV-001.jpg');
-    const photo = await fetch(`${base}${bananas.imageUrl}`);
+    const photo = await fetch(`${baseUrl()}${bananas.imageUrl}`);
     assert.equal(photo.status, 200);
     assert.equal(photo.headers.get('content-type'), 'image/jpeg');
   });
 
   it('manages categories and delivery zones', async () => {
-    const category = await api('POST', '/api/staff/categories', { token: staff, body: { name: 'Baby & Toddler', icon: '🍼' } });
+    const category = await api('POST', '/api/staff/categories', { token: staff, body: { name: 'Baby & Toddler' } });
     assert.equal(category.status, 201);
     assert.equal(category.body.category.slug, 'baby-and-toddler');
 

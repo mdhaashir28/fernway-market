@@ -1,12 +1,14 @@
-// Checkout maths. Prices, stock and fees are ALWAYS worked out here on the
-// server from the database — the app only sends product ids and quantities,
-// so a modified app can never choose its own prices.
+// Checkout maths. Prices, stock, offers and fees are ALWAYS worked out here on
+// the server from the database — the app only sends product ids, quantities
+// and choices, so a modified app can never choose its own prices.
 import { z } from 'zod';
 import type { Db } from '../db/pool.js';
 import { formatMoney } from '../lib/money.js';
 import { optionalText } from '../lib/validation.js';
 import { deliveryFeeFor, findZoneForPostcode, type DeliveryZone } from './delivery.service.js';
+import { applyPromotions, getLoyaltyBalance, loyaltyRedemption, type AppliedPromotion } from './offers.service.js';
 import { getSlot, type PickupSlot } from './pickup.service.js';
+import { getStoreSettings, type StoreSettings } from './settings.service.js';
 
 export const MAX_QUANTITY_PER_ITEM = 50;
 
@@ -26,6 +28,13 @@ export const addressFieldsSchema = z.object({
 });
 export type AddressFields = z.output<typeof addressFieldsSchema>;
 
+/** What the customer wants if an item turns out to be unavailable when we pick the order. */
+export const substitutionSchema = z.object({
+  preference: z.enum(['none', 'similar', 'specific']),
+  productId: z.number().int().positive().optional(),
+});
+export type SubstitutionChoice = z.output<typeof substitutionSchema>;
+
 export const cartItemsSchema = z
   .array(
     z.object({
@@ -35,6 +44,7 @@ export const cartItemsSchema = z
         .int()
         .min(1, 'Quantity must be at least 1')
         .max(MAX_QUANTITY_PER_ITEM, `You can order up to ${MAX_QUANTITY_PER_ITEM} of each item`),
+      substitution: substitutionSchema.optional(),
     }),
   )
   .min(1, 'Your cart is empty.')
@@ -52,7 +62,12 @@ export const fulfillmentSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-export const quoteSchema = z.object({ items: cartItemsSchema, fulfillment: fulfillmentSchema });
+export const quoteSchema = z.object({
+  items: cartItemsSchema,
+  fulfillment: fulfillmentSchema,
+  /** Spend loyalty points on this order (only when loyalty points are switched on). */
+  useLoyaltyPoints: z.boolean().optional(),
+});
 export type QuoteInput = z.output<typeof quoteSchema>;
 
 export interface CheckoutIssue {
@@ -65,10 +80,9 @@ export interface CheckoutIssue {
 export interface PricedItem {
   productId: number;
   name: string;
+  nameTa: string | null;
   unitLabel: string;
   imageUrl: string | null;
-  icon: string | null;
-  categoryIcon: string;
   unitPriceCents: number;
   quantity: number;
   lineTotalCents: number;
@@ -91,16 +105,15 @@ export async function priceItems(db: Db, items: QuoteInput['items'], { lockStock
   const { rows } = await db.query<{
     id: number;
     name: string;
+    nameTa: string | null;
     unitLabel: string;
     imageUrl: string | null;
-    icon: string | null;
-    categoryIcon: string;
     priceCents: number;
     isActive: boolean;
     stock: number;
   }>(
-    `SELECT p.id, p.name, p.unit_label AS "unitLabel", p.image_url AS "imageUrl", p.icon,
-            c.icon AS "categoryIcon", p.price_cents AS "priceCents",
+    `SELECT p.id, p.name, p.name_ta AS "nameTa", p.unit_label AS "unitLabel", p.image_url AS "imageUrl",
+            p.price_cents AS "priceCents",
             (p.is_active AND c.is_active) AS "isActive", i.quantity AS stock
      FROM products p
      JOIN categories c ON c.id = p.category_id
@@ -141,10 +154,9 @@ export async function priceItems(db: Db, items: QuoteInput['items'], { lockStock
     priced.push({
       productId,
       name: row.name,
+      nameTa: row.nameTa,
       unitLabel: row.unitLabel,
       imageUrl: row.imageUrl,
-      icon: row.icon,
-      categoryIcon: row.categoryIcon,
       unitPriceCents: row.priceCents,
       quantity,
       lineTotalCents,
@@ -154,6 +166,43 @@ export async function priceItems(db: Db, items: QuoteInput['items'], { lockStock
   }
 
   return { items: priced, issues, subtotalCents };
+}
+
+/**
+ * Checks the customer's substitution choices. When substitutions are switched
+ * off in the store settings every choice becomes "don't substitute".
+ */
+export async function resolveSubstitutions(db: Db, settings: StoreSettings, items: QuoteInput['items']) {
+  const choices = new Map<number, SubstitutionChoice>();
+  const issues: CheckoutIssue[] = [];
+  const specificIds = items.filter((i) => i.substitution?.preference === 'specific' && i.substitution.productId).map((i) => i.substitution!.productId!);
+  const { rows } = specificIds.length
+    ? await db.query<{ id: number; name: string }>(
+        `SELECT p.id, p.name FROM products p JOIN categories c ON c.id = p.category_id
+         WHERE p.id = ANY($1::int[]) AND p.is_active AND c.is_active`,
+        [specificIds],
+      )
+    : { rows: [] };
+  const active = new Set(rows.map((r) => r.id));
+
+  for (const item of items) {
+    const choice = item.substitution ?? { preference: 'none' as const };
+    if (!settings.substitutionsEnabled || choice.preference === 'none') {
+      choices.set(item.productId, { preference: 'none' });
+    } else if (choice.preference === 'specific') {
+      if (!choice.productId || choice.productId === item.productId || !active.has(choice.productId)) {
+        issues.push({
+          code: 'SUBSTITUTE_UNAVAILABLE',
+          productId: item.productId,
+          message: 'The replacement you chose for one item is no longer available. Please choose another option.',
+        });
+      }
+      choices.set(item.productId, choice);
+    } else {
+      choices.set(item.productId, { preference: 'similar' });
+    }
+  }
+  return { choices, issues };
 }
 
 export type ResolvedFulfillment =
@@ -218,17 +267,57 @@ export async function resolveFulfillment(
   return { fulfillment: { type: 'delivery', address, zone, feeCents }, issues };
 }
 
+export interface Totals {
+  subtotalCents: number;
+  discountCents: number;
+  promotions: AppliedPromotion[];
+  deliveryFeeCents: number;
+  loyalty: { enabled: boolean; balance: number; pointsAvailable: number; pointsUsed: number; discountCents: number };
+  totalCents: number;
+}
+
+/** Bundle savings, loyalty points and the final total. */
+export async function computeTotals(
+  db: Db,
+  settings: StoreSettings,
+  userId: number,
+  priced: { items: PricedItem[]; subtotalCents: number },
+  deliveryFeeCents: number,
+  useLoyaltyPoints: boolean,
+): Promise<Totals> {
+  const promotions = await applyPromotions(db, settings, priced.items);
+  const balance = settings.loyaltyEnabled ? await getLoyaltyBalance(db, userId) : 0;
+  const goodsAfterOffers = priced.subtotalCents - promotions.discountCents;
+  const redemption = loyaltyRedemption(settings, balance, goodsAfterOffers);
+  const used = useLoyaltyPoints ? redemption : { points: 0, discountCents: 0 };
+  return {
+    subtotalCents: priced.subtotalCents,
+    discountCents: promotions.discountCents,
+    promotions: promotions.applied,
+    deliveryFeeCents,
+    loyalty: {
+      enabled: settings.loyaltyEnabled,
+      balance,
+      pointsAvailable: redemption.points,
+      pointsUsed: used.points,
+      discountCents: used.discountCents,
+    },
+    totalCents: goodsAfterOffers + deliveryFeeCents - used.discountCents,
+  };
+}
+
 /** Price check used by the checkout screen before the order is placed. Nothing is saved. */
 export async function buildQuote(db: Db, userId: number, input: QuoteInput) {
+  const settings = await getStoreSettings(db);
   const priced = await priceItems(db, input.items, { lockStock: false });
   const { fulfillment, issues } = await resolveFulfillment(db, userId, input.fulfillment, priced.subtotalCents);
-  const allIssues = [...priced.issues, ...issues];
+  const substitutions = await resolveSubstitutions(db, settings, input.items);
+  const totals = await computeTotals(db, settings, userId, priced, fulfillment.feeCents, Boolean(input.useLoyaltyPoints));
+  const allIssues = [...priced.issues, ...issues, ...substitutions.issues];
 
   return {
     items: priced.items,
-    subtotalCents: priced.subtotalCents,
-    deliveryFeeCents: fulfillment.feeCents,
-    totalCents: priced.subtotalCents + fulfillment.feeCents,
+    ...totals,
     fulfillment: describeFulfillment(fulfillment, priced.subtotalCents),
     issues: allIssues,
     canPlaceOrder: allIssues.length === 0,
@@ -255,7 +344,7 @@ function describeFulfillment(fulfillment: ResolvedFulfillment, subtotalCents: nu
       freeDeliveryThresholdCents: zone.freeDeliveryThresholdCents,
       minOrderCents: zone.minOrderCents,
     },
-    // e.g. "Spend $4.20 more for free delivery"
+    // e.g. "Spend ₹42 more for free delivery"
     amountToFreeDeliveryCents: threshold != null && subtotalCents < threshold ? threshold - subtotalCents : null,
   };
 }

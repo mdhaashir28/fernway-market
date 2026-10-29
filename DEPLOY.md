@@ -5,8 +5,8 @@
 | Part | Where it goes | Guide |
 | --- | --- | --- |
 | Your code | **GitHub** (private repository) | Step 1 |
-| Database + API + staff dashboard | **Render**, which reads your GitHub repo and rebuilds on every push | Step 2 |
-| Customer app | **Expo EAS**, which builds an Android app (APK) or app-store builds | Step 3 |
+| Database + API + staff dashboard + customer web shop | **Render**, which reads your GitHub repo and rebuilds on every push | Step 2 |
+| Customer app on phones | **Expo EAS**, which builds an Android app (APK) or app-store builds | Step 3 |
 
 > Render is one good beginner-friendly choice. Others (Railway, Fly.io, Neon for the database, Netlify/Vercel
 > for the dashboard) work too. Free plans change often. Check each site's pricing page before relying on one.
@@ -48,47 +48,155 @@ git push
 
 ---
 
-## Step 2 — Deploy the database, API and dashboard on Render
+## Step 2 — Deploy the demo on Render
 
 The file [`render.yaml`](render.yaml) describes everything (a "Blueprint"), so Render can set it all up at once.
+It is set up for a **demo**:
+
+- UPI payments use **Razorpay test mode** once you add test keys. Until then they use the labelled practice page. Live keys are refused.
+- WhatsApp messages are **recorded, not sent**.
+- Sample products, orders and two sample logins are loaded.
+
+### 2a. Create the services
 
 1. Sign up at https://render.com using **"Sign in with GitHub"**, and allow Render to see your `fernway-market` repository.
-2. In Render, click **New → Blueprint**, choose your `fernway-market` repository, and click **Apply**.
-   Render creates three things:
-   - `fernway-db` (PostgreSQL)
-   - `fernway-api` (the API)
-   - `fernway-dashboard` (the staff website)
-3. Wait until all three say **Live** (the first build takes a few minutes).
-4. **Check the web addresses.** Click each service and look at its URL at the top. The setup file assumes:
-   - API: `https://fernway-api.onrender.com`
-   - Dashboard: `https://fernway-dashboard.onrender.com`
+2. Push your latest code to GitHub (Step 1). Render builds what is on GitHub, not what is on your computer.
+3. In Render, click **New → Blueprint**, choose your `fernway-market` repository and branch (`master`), and click **Apply**.
+4. Render asks for three values (they are marked `sync: false` in `render.yaml`):
+   - `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`: your Razorpay **test** keys (`rzp_test_…`), see [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md#razorpay-test-mode-for-the-demo);
+   - `RAZORPAY_WEBHOOK_SECRET`: the secret you will type when creating the test-mode webhook (2d).
 
-   If Render gave a different address (for example because the name was taken):
-   - `fernway-dashboard` → **Environment** → set `VITE_API_URL` to the API's real address → **Save, rebuild and deploy**.
-   - `fernway-api` → **Environment** → set `CORS_ORIGINS` to the dashboard's real address → **Save and deploy**.
-5. Test the API: open `https://fernway-api.onrender.com/api/health`, which should show `"status":"ok"`.
-6. Open the dashboard and log in:
+   If you don't have them yet, leave them out. You can add them later under `meeranji-api` → **Environment**; Render only asks once. Never paste **live** keys (`rzp_live_…`).
+5. Render creates four things. Wait until all of them say **Live**; the first build takes several minutes.
+
+   | Service | What it is | Expected address |
+   | --- | --- | --- |
+   | `meeranji-db` | PostgreSQL database | (private) |
+   | `meeranji-api` | The API | `https://meeranji-api.onrender.com` |
+   | `meeranji-staff` | Staff dashboard | `https://meeranji-staff.onrender.com` |
+   | `meeranji-shop` | Customer app, as a website | `https://meeranji-shop.onrender.com` |
+
+6. **Check the web addresses.** Click each service and look at its URL at the top. If Render gave a different address
+   (for example because the name was taken), fix the three settings that contain addresses:
+   - `meeranji-api` → **Environment** → `CORS_ORIGINS` = the real staff and shop addresses, separated by a comma → **Save and deploy**.
+   - `meeranji-staff` → **Environment** → `VITE_API_URL` = the API's real address → **Save, rebuild and deploy**.
+   - `meeranji-shop` → **Environment** → `EXPO_PUBLIC_API_URL` = the API's real address → **Save, rebuild and deploy**.
+7. Open `https://meeranji-api.onrender.com/api/health`. It should show something like
+   `{"status":"ok","database":"ok","payments":"demo","whatsapp":"demo",…}`. `payments` is `test` once Razorpay test keys are set.
+8. Open the staff dashboard and log in:
    - Email: `staff@fernway.local`
-   - Password: in Render → `fernway-api` → **Environment** → `SEED_STAFF_PASSWORD` (click the eye icon).
+   - Password: Render → `meeranji-api` → **Environment** → `SEED_STAFF_PASSWORD` (click the eye icon).
+   - The sample customer login is `customer@fernway.local` with `SEED_CUSTOMER_PASSWORD`.
+
+### 2b. Environment variables
+
+All values live in Render (each service → **Environment**), never in the code or on GitHub. The table shows
+placeholders only.
+
+**`meeranji-api`**
+
+| Variable | Value in `render.yaml` | Notes |
+| --- | --- | --- |
+| `DATABASE_URL` | from `meeranji-db` | Filled in by Render |
+| `JWT_SECRET` | generated by Render | Random; signs logins |
+| `NODE_ENV` | `production` | |
+| `CORS_ORIGINS` | `https://meeranji-staff.onrender.com,https://meeranji-shop.onrender.com` | Websites allowed to call the API |
+| `IMAGE_STORAGE` | `database` | Free servers lose their disk on each deploy |
+| `LOAD_SAMPLE_DATA` | `true` | Demo data. `false` for a real store |
+| `SEED_STAFF_EMAIL` / `SEED_CUSTOMER_EMAIL` | `staff@fernway.local` / `customer@fernway.local` | Sample logins |
+| `SEED_STAFF_PASSWORD` / `SEED_CUSTOMER_PASSWORD` | generated by Render | Random |
+| `STORE_NAME`, `STORE_ADDRESS`, `STORE_PHONE`, `CURRENCY`, `STORE_TIMEZONE` | Meeranji's details | |
+| `PAYMENTS_MODE` | `razorpay` | Test mode with test keys; the practice page while keys are missing |
+| `RAZORPAY_KEY_ID` | *you enter* `rzp_test_…` | Test key only |
+| `RAZORPAY_KEY_SECRET` | *you enter* | Secret |
+| `RAZORPAY_WEBHOOK_SECRET` | *you enter* | Secret; same text as in the Razorpay webhook |
+| `RAZORPAY_ALLOW_LIVE_PAYMENTS` | `false` | **Keep `false`.** With `false`, the API refuses to start with live keys |
+| `PAYMENT_TIMEOUT_MINUTES` | `15` | Unpaid UPI orders are cancelled after this |
+| `WHATSAPP_MODE` | `demo` | Recorded in the dashboard, never sent |
+| `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | not set | Only for real sending later (`cloud_api`), see [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) |
+| `PUBLIC_API_URL` | not set | Render's own address (`RENDER_EXTERNAL_URL`) is used for payment links |
+
+**`meeranji-staff`**: `VITE_API_URL` = the API's address. **`meeranji-shop`**: `EXPO_PUBLIC_API_URL` = the API's address.
+Both are built into the website, so change them with **Save, rebuild and deploy**. If one is missing, the build
+stops with a message saying what to add.
+
+Values copied from `.env.example` (anything containing `replace-with`) are treated as not set.
+
+### 2c. Health check and logs
+
+- Render calls **`/api/health`** to decide whether the API is working. It answers `200` when the API and database are fine,
+  and `503` when the database can't be reached. Render then keeps the previous working version running.
+- The health answer also shows the current **payment mode** (`demo` / `test` / `live`), the **WhatsApp mode**
+  (`off` / `demo` / `cloud_api`) and the deployed code version.
+- **Logs:** Render → `meeranji-api` → **Logs**.
+  - At startup the API prints its modes, for example `UPI payments: Razorpay TEST mode (test keys — no real money)`, plus warnings such as missing keys or a missing webhook secret.
+  - Each request is logged as method, path, status and time. Query strings are left out, and the private part of payment-page links is hidden. Health checks are not logged.
+  - Errors are logged with their cause. Keys, secrets, tokens, passwords and database passwords are replaced with `[redacted]` before anything is written to the logs.
+- If a setting is wrong (for example a live key without `RAZORPAY_ALLOW_LIVE_PAYMENTS=true`), the API stops at startup and
+  the log names the setting, never its value.
+
+### 2d. Testing WhatsApp previews and Razorpay test payments
+
+**WhatsApp previews (no Meta account needed):**
+
+1. Open the customer shop, log in as the sample customer, and in **Account** turn on **Order updates on WhatsApp**
+   (a mobile number must be saved). The switch says it is a demo.
+2. Place an order.
+3. In the staff dashboard, open the order and move it through **Preparing → Ready for pickup** (or **Out for delivery**) **→ Completed**.
+4. Open **WhatsApp log** in the dashboard. Each update appears in English or Tamil, filled in exactly as the customer
+   would see it and marked "Demo — not sent". The customer also sees each update in the app under **Updates**.
+
+**Razorpay test payments:**
+
+1. Add your Razorpay **test** keys to `meeranji-api` → **Environment** (if you didn't in 2a) → **Save and deploy**.
+2. In the Razorpay Dashboard (Test Mode) → **Account & Settings → Webhooks → Add new webhook**:
+   - URL `https://meeranji-api.onrender.com/api/webhooks/razorpay`;
+   - a secret of your choice, also saved as `RAZORPAY_WEBHOOK_SECRET` in Render;
+   - events `payment.authorized`, `payment.captured`, `payment.failed`, `order.paid`, `refund.processed`, `refund.failed`.
+3. Check `/api/health` shows `"payments":"test"`, and that the dashboard's **Overview** shows the "Razorpay TEST mode" banner.
+4. In the customer shop, on a computer's browser, check out with **Pay now with UPI**. The payment page and checkout are
+   marked **RAZORPAY TEST MODE**. Try:
+   - `success@razorpay`: the order becomes **Order confirmed**, and the dashboard shows Paid with a **Razorpay TEST** badge;
+   - `failure@razorpay`: "Payment failed", and **Try paying again** is offered;
+   - closing the checkout without paying: "Payment cancelled — your order is still waiting".
+5. In the Razorpay Dashboard (Test Mode) → **Webhooks**, check that the deliveries succeeded. The first one may fail if the
+   API was asleep; Razorpay retries it.
+
+The full list, including what can't be tested in test mode, is in [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md#razorpay-test-mode-for-the-demo).
+
+### 2e. Checklist: keep real money and real WhatsApp messages off during the demo
+
+- [ ] `RAZORPAY_ALLOW_LIVE_PAYMENTS` is `false` (or not set).
+- [ ] `RAZORPAY_KEY_ID` starts with `rzp_test_`, or is not set. No `rzp_live_` key is stored anywhere in Render.
+- [ ] `/api/health` shows `"payments":"test"` or `"payments":"demo"`, never `"live"`.
+- [ ] The dashboard Overview shows the yellow **DEMO** or **TEST mode** payment banner, not the red **LIVE** one.
+- [ ] The Razorpay webhook was created with the dashboard in **Test Mode**.
+- [ ] `WHATSAPP_MODE` is `demo` (or `off`), and `/api/health` shows `"whatsapp":"demo"`.
+- [ ] No `WHATSAPP_ACCESS_TOKEN` is set on the demo.
+- [ ] Nobody has been given the demo links as a real way to shop.
+- [ ] `.env`, `.env.vercel.local` and any keys are **not** on GitHub (`git status` doesn't list them; they are in `.gitignore`).
 
 ### What the deployed version does differently
 - **Photos** staff upload are stored **in the database** (`IMAGE_STORAGE=database`), because free Render servers
   lose their disk on every deploy. The sample photos are part of your code, so they always work.
 - **Sample data** is loaded because `LOAD_SAMPLE_DATA=true`. For a real store, set it to `false`, remove the
   `SEED_*` variables, and create your staff login with the Render **Shell** tab:
-  `npm run create-staff -- --email you@yourstore.com --password "a-long-password" --name "Your Name"`
+  `npm run create-staff -- --email you@yourstore.com --password "a-long-password" --name "Your Name"` (the first account is a **manager**; add more with `--role staff` or from the dashboard's **Staff accounts** page)
 - `JWT_SECRET` and the sample passwords are random values Render generates. They're not in your code.
+- Unpaid UPI orders are cancelled, and queued WhatsApp messages handled, every minute while the API is awake.
 
-### Free plan limits (check Render's pricing page for the current details)
-- A free web service **goes to sleep** after a while without visitors. The next visit takes up to a minute
-  while it wakes up (the app waits up to 30 seconds and then shows "Try again").
-- Render's **free database is meant for trying things out** and is removed after a limited time. For a real
-  store, upgrade the database to a paid plan, or use a database from another provider (for example Neon) and paste its
-  connection string into `DATABASE_URL`.
+### Free plan limits (check [Render's free plan page](https://render.com/docs/free) for the current details)
+- A free web service **goes to sleep** after 15 minutes without visitors. The next visit takes about a minute
+  while it wakes up (the app waits up to 30 seconds and then shows "Try again"). Open `/api/health` a minute
+  before showing the demo.
+- A free Render database **expires 30 days after it is created**. After that you have 14 days to upgrade it before
+  Render deletes it and its data. For anything longer than a demo, upgrade the database or use another provider
+  (for example Neon) and paste its connection string into `DATABASE_URL`.
 
-### Updating the live site
-Every `git push` to `main` makes Render rebuild and redeploy automatically. Database changes in new
-`backend/db/migrations/*.sql` files are applied when the API restarts.
+### Updating the demo
+Every `git push` to `master` makes Render rebuild and redeploy automatically. The two websites only rebuild when
+files in their own folder change. Database changes in new `backend/db/migrations/*.sql` files are applied when
+the API restarts.
 
 ---
 
@@ -124,12 +232,27 @@ How it works (already set up in the code):
 - After changing an environment variable, **redeploy** that project (Deployments → ⋯ → Redeploy). The website
   addresses are built in at build time.
 
+**UPI payments and WhatsApp on Vercel**
+
+- Both stay in **demo mode** unless you add their settings to the API project. No variables are needed for demo mode.
+- Add `PUBLIC_API_URL=https://meeranji-api.vercel.app` so the payment page links use the main address.
+- For Razorpay test payments, add `PAYMENTS_MODE=razorpay` and the `RAZORPAY_*` test keys; for real WhatsApp messages,
+  the `WHATSAPP_*` variables. Add them only as Vercel environment variables, never in the code, and follow
+  [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md). Keep `RAZORPAY_ALLOW_LIVE_PAYMENTS` unset or `false`, so live keys are refused. That includes the
+  webhook addresses `https://meeranji-api.vercel.app/api/webhooks/razorpay` and `…/api/webhooks/whatsapp`.
+- Serverless functions only run when a request arrives. Housekeeping therefore runs on the next request:
+  - cancelling unpaid UPI orders after their time runs out;
+  - sending queued WhatsApp messages.
+
+  With a few customers and staff using the app this happens within seconds or minutes. Payment webhooks still arrive
+  straight away.
+
 ---
 
 ## Step 3 — The customer app
 
 ### Quick option: use the live API from Expo Go
-Create `mobile/.env` containing your API's address (Render: `https://fernway-api.onrender.com`, Vercel: `https://meeranji-api.vercel.app`):
+Create `mobile/.env` containing your API's address (Render: `https://meeranji-api.onrender.com`, Vercel: `https://meeranji-api.vercel.app`):
 ```
 EXPO_PUBLIC_API_URL=https://meeranji-api.vercel.app
 ```
@@ -163,6 +286,9 @@ API's address is different. Before publishing, also change the app identifiers `
 ---
 
 ## Checklist before real customers use it
+- [ ] Razorpay go-live checklist in [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md#go-live-checklist-for-real-payments) completed before any live key or `RAZORPAY_ALLOW_LIVE_PAYMENTS=true`
+- [ ] WhatsApp templates approved and tested before `WHATSAPP_MODE=cloud_api`
+- [ ] Every product photo is your own or properly licensed (see `backend/seed-images/CREDITS.md`)
 - [ ] `LOAD_SAMPLE_DATA=false`, sample accounts removed, your own staff account created
 - [ ] Database on a paid or long-lived plan, with backups
 - [ ] Your real store name, address, phone, delivery zones and products
